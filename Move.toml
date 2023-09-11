@@ -1,0 +1,27 @@
+[package]
+name = "dfa"
+version = "1.0.0"
+authors = []
+
+[addresses]
+game = "0x1"
+aptogotchi = '0x2'
+dfa = "0x3"
+
+
+
+[dev-addresses]
+
+[dependencies.AptosFramework]
+git = "https://github.com/aptos-labs/aptos-core.git"
+rev = "mainnet"
+subdir = "aptos-move/framework/aptos-framework"
+
+
+[dependencies.AptosTokenObjects]
+git = 'https://github.com/aptos-labs/aptos-core.git'
+rev = 'main'
+subdir = 'aptos-move/framework/aptos-token-objects'
+
+[dev-dependencies]
+
