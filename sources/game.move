@@ -1,4 +1,4 @@
-module main::game {
+module main::game{
 
     use aptos_framework::account::{Self, SignerCapability};
     use aptos_framework::timestamp;
@@ -51,6 +51,7 @@ module main::game {
         });
 
         create_character_collection(&token_resource);
+        
     }
 
     fun get_token_signer(): signer acquires CollectionCapability {
@@ -169,6 +170,62 @@ module main::game {
         let char = get_character_internal_mut(&user_addr);
         char.hp = newhp;
         char.hp;
+    }
+
+    #[view]
+    public fun get_weapon(user_addr: address): u64 acquires Character, CollectionCapability {
+        let char = get_character_internal_mut(&user_addr);
+        char.weapon_id
+    }
+
+    public entry fun set_weapon(user_addr: address, newweapon: u64) acquires Character, CollectionCapability {
+        let char = get_character_internal_mut(&user_addr);
+        char.weapon_id = newweapon;
+        char.weapon_id;
+    }
+    #[view]
+    public fun get_def(user_addr: address): u64 acquires Character, CollectionCapability {
+        let char = get_character_internal_mut(&user_addr);
+        char.def
+    }
+
+    public entry fun set_def(user_addr: address, newdef: u64) acquires Character, CollectionCapability {
+        let char = get_character_internal_mut(&user_addr);
+        char.def = newdef;
+        char.def;
+    }
+    #[view]
+    public fun get_str(user_addr: address): u64 acquires Character, CollectionCapability {
+        let char = get_character_internal_mut(&user_addr);
+        char.str
+    }
+
+    public entry fun set_str(user_addr: address, newstr: u64) acquires Character, CollectionCapability {
+        let char = get_character_internal_mut(&user_addr);
+        char.str = newstr;
+        char.str;
+    }
+    #[view]
+    public fun get_atkspd(user_addr: address): u64 acquires Character, CollectionCapability {
+        let char = get_character_internal_mut(&user_addr);
+        char.atk_speed
+    }
+
+    public entry fun set_atkspd(user_addr: address, newatkspd: u64) acquires Character, CollectionCapability {
+        let char = get_character_internal_mut(&user_addr);
+        char.atk_speed = newatkspd;
+        char.atk_speed;
+    }
+    #[view]
+    public fun get_movementspd(user_addr: address): u64 acquires Character, CollectionCapability {
+        let char = get_character_internal_mut(&user_addr);
+        char.movement_speed
+    }
+
+    public entry fun set_movementspd(user_addr: address, newmovement_speed: u64) acquires Character, CollectionCapability {
+        let char = get_character_internal_mut(&user_addr);
+        char.movement_speed = newmovement_speed;
+        char.movement_speed;
     }
 
     #[view]
