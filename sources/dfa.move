@@ -38,10 +38,7 @@ module dfa::equipment {
     const LEATHER_ARMOR_TOKEN_NAME: vector<u8> = b"Meat Token";
 
     /// Property names
-    const CONDITION_PROPERTY_NAME: vector<u8> = b"Condition";
     const RESTORATION_VALUE_PROPERTY_NAME: vector<u8> = b"Equipment Stats";
-    const HEALTH_POINT_PROPERTY_NAME: vector<u8> = b"Health Point";
-
 
     #[resource_group_member(group = aptos_framework::object::ObjectGroup)]
     // Armor Token
@@ -107,19 +104,19 @@ module dfa::equipment {
     #[view]
     /// Returns the iron token address
     public fun iron_token_address(): address {
-        armor_token_address(string::utf8(IRON_ARMOR_TOKEN_NAME))
+        equipment_token_address(string::utf8(ARMOR_COLLECTION_NAME),string::utf8(IRON_ARMOR_TOKEN_NAME))
     }
 
     #[view]
     /// Returns the leather token address
     public fun leather_token_address(): address {
-        armor_token_address(string::utf8(LEATHER_ARMOR_TOKEN_NAME))
+        equipment_token_address(string::utf8(ARMOR_COLLECTION_NAME),string::utf8(LEATHER_ARMOR_TOKEN_NAME))
     }
 
     #[view]
     /// Returns the armor token address by name
-    public fun armor_token_address(armor_token_name: String): address {
-        token::create_token_address(&@dfa, &string::utf8(ARMOR_COLLECTION_NAME), &armor_token_name)
+    public fun equipment_token_address(collection_name:String, equipment_token_name: String): address {
+        token::create_token_address(&@dfa, &collection_name, &equipment_token_name)
     }
 
     /// Mints the given amount of the iron token to the given receiver.
