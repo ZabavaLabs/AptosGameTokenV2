@@ -1,10 +1,11 @@
 module main::game{
 
     use aptos_framework::account::{Self, SignerCapability};
+
     // use aptos_framework::timestamp;
     use aptos_std::string_utils::{to_string};
     use aptos_token_objects::collection;
-    use aptos_token_objects::token;
+    use aptos_token_objects::token::{Self, Token};
     use std::option;
     use std::signer;
     use std::signer::address_of;
@@ -138,6 +139,8 @@ module main::game{
         };
 
         move_to(&token_signer, new_char);
+        let created_token = object::object_from_constructor_ref<Token>(&constructor_ref);
+        object::transfer(&get_token_signer() , created_token, signer::address_of(user));
     }
 
     fun get_character_address(creator_addr: &address): (address) acquires CollectionCapability {
