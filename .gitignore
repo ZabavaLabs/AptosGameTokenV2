@@ -1,2 +1,5 @@
 build/*
 .aptos/*
+*.key
+*.pub
+CLIcommands.txt

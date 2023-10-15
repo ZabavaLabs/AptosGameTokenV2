@@ -1,26 +1,28 @@
 module main::game{
 
     use aptos_framework::account::{Self, SignerCapability};
-
+    use aptos_framework::object::{Self};
     // use aptos_framework::timestamp;
-    use aptos_std::string_utils::{to_string};
     use aptos_token_objects::collection;
     use aptos_token_objects::token::{Self, Token};
+    use aptos_token_objects::property_map;
+
     use std::option;
     use std::signer;
-    use std::signer::address_of;
+    // use std::signer::address_of;
     use std::string::{Self, String};
+    use aptos_std::string_utils::{to_string};
+
     // use std::debug::print;
     // use std::vector;
-    use aptos_framework::object::{Self};
 
     struct Character has key {
         name: String,
         hp:u64,
         def:u64,
         atk:u64,
-        atk_speed:u64,
-        movement_speed:u64,
+        atk_spd:u64,
+        mv_spd:u64,
         mutator_ref: token::MutatorRef,
         burn_ref: token::BurnRef
     }
@@ -73,12 +75,12 @@ module main::game{
         );
     }
 
-    public entry fun mint_character(user: &signer, newname: String,
-         newhp: u64, newdef: u64, newstr: u64,
-         newatk_speed: u64, newmovement_speed: u64) acquires CollectionCapability {
+    public entry fun mint_character(user: &signer, token_name: String,
+         hp: u64, def: u64, atk: u64,
+         atk_spd: u64, mv_spd: u64) acquires CollectionCapability {
         let uri = string::utf8(UC_CHARACTER_COLLECTION_URI);
         let description = string::utf8(UC_CHARACTER_COLLECTION_DESCRIPTION);
-        let token_name = to_string(&address_of(user));
+        // let token_name = to_string(&address_of(user));
 
         let constructor_ref = token::create_named_token(
             &get_token_signer(),
@@ -92,27 +94,62 @@ module main::game{
         let token_signer = object::generate_signer(&constructor_ref);
         let mutator_ref = token::generate_mutator_ref(&constructor_ref);
         let burn_ref = token::generate_burn_ref(&constructor_ref);
+        let property_mutator_ref = property_map::generate_mutator_ref(&constructor_ref);
+
+        // Initializes the value with the given value in armor. Not needed to store it globally for now.
+        // move_to(&object_signer, EquipmentStats { value: restoration_value });
+
+        // Initialize the property map.
+        let properties = property_map::prepare_input(vector[], vector[], vector[]);
+        property_map::init(&constructor_ref, properties);
+        property_map::add_typed(
+            &property_mutator_ref,
+            string::utf8(b"ATK"),
+            atk
+        );
+        property_map::add_typed(
+            &property_mutator_ref,
+            string::utf8(b"DEF"),
+            def
+        );
+        property_map::add_typed(
+            &property_mutator_ref,
+            string::utf8(b"HP"),
+            hp
+        );
+        property_map::add_typed(
+            &property_mutator_ref,
+            string::utf8(b"ATK_SPD"),
+            atk_spd
+        );
+        property_map::add_typed(
+            &property_mutator_ref,
+            string::utf8(b"MV_SPD"),
+            mv_spd
+        );
 
         let new_char = Character {
-            name: newname,
-            hp: newhp,
-            def: newdef,
-            atk: newstr,
-            atk_speed: newatk_speed,
-            movement_speed: newmovement_speed,
+            name: token_name,
+            hp: hp,
+            def: def,
+            atk: atk,
+            atk_spd: atk_spd,
+            mv_spd: mv_spd,
             mutator_ref,
             burn_ref,
         };
 
         move_to(&token_signer, new_char);
+        let created_token = object::object_from_constructor_ref<Token>(&constructor_ref);
+        object::transfer(&get_token_signer() , created_token, signer::address_of(user));
     }
 
-    public entry fun mint_character_unlimited(user: &signer, newname: String,
-         newhp: u64, newdef: u64, newstr: u64,
-         newatk_speed: u64, newmovement_speed: u64) acquires CollectionCapability {
+    public entry fun mint_character_unlimited(user: &signer, token_name: String,
+         hp: u64, def: u64, atk: u64,
+         atk_spd: u64, mv_spd: u64) acquires CollectionCapability {
         let uri = string::utf8(UC_CHARACTER_COLLECTION_URI);
         let description = string::utf8(UC_CHARACTER_COLLECTION_DESCRIPTION);
-        let token_name = to_string(&address_of(user));
+        // let token_name = to_string(&address_of(user));
 
         let constructor_ref = token::create_from_account(
             &get_token_signer(),
@@ -126,14 +163,47 @@ module main::game{
         let token_signer = object::generate_signer(&constructor_ref);
         let mutator_ref = token::generate_mutator_ref(&constructor_ref);
         let burn_ref = token::generate_burn_ref(&constructor_ref);
+        let property_mutator_ref = property_map::generate_mutator_ref(&constructor_ref);
+
+        // Initializes the value with the given value in armor. Not needed to store it globally for now.
+        // move_to(&object_signer, EquipmentStats { value: restoration_value });
+
+        // Initialize the property map.
+        let properties = property_map::prepare_input(vector[], vector[], vector[]);
+        property_map::init(&constructor_ref, properties);
+        property_map::add_typed(
+            &property_mutator_ref,
+            string::utf8(b"ATK"),
+            atk
+        );
+        property_map::add_typed(
+            &property_mutator_ref,
+            string::utf8(b"DEF"),
+            def
+        );
+        property_map::add_typed(
+            &property_mutator_ref,
+            string::utf8(b"HP"),
+            hp
+        );
+        property_map::add_typed(
+            &property_mutator_ref,
+            string::utf8(b"ATK_SPD"),
+            atk_spd
+        );
+        property_map::add_typed(
+            &property_mutator_ref,
+            string::utf8(b"MV_SPD"),
+            mv_spd
+        );
 
         let new_char = Character {
-            name: newname,
-            hp: newhp,
-            def: newdef,
-            atk: newstr,
-            atk_speed: newatk_speed,
-            movement_speed: newmovement_speed,
+            name: token_name,
+            hp: hp,
+            def: def,
+            atk: atk,
+            atk_spd: atk_spd,
+            mv_spd: mv_spd,
             mutator_ref,
             burn_ref,
         };
@@ -216,9 +286,9 @@ module main::game{
         char.hp
     }
 
-    public entry fun set_hp(user_addr: address, newhp: u64) acquires Character, CollectionCapability {
+    public entry fun set_hp(user_addr: address, hp: u64) acquires Character, CollectionCapability {
         let char = get_character_internal_mut(&user_addr);
-        char.hp = newhp;
+        char.hp = hp;
         char.hp;
     }
 
@@ -228,43 +298,43 @@ module main::game{
         char.def
     }
 
-    public entry fun set_def(user_addr: address, newdef: u64) acquires Character, CollectionCapability {
+    public entry fun set_def(user_addr: address, def: u64) acquires Character, CollectionCapability {
         let char = get_character_internal_mut(&user_addr);
-        char.def = newdef;
+        char.def = def;
         char.def;
     }
     #[view]
-    public fun get_str(user_addr: address): u64 acquires Character, CollectionCapability {
+    public fun get_atk(user_addr: address): u64 acquires Character, CollectionCapability {
         let char = get_character_internal_mut(&user_addr);
         char.atk
     }
 
-    public entry fun set_str(user_addr: address, newstr: u64) acquires Character, CollectionCapability {
+    public entry fun set_str(user_addr: address, atk: u64) acquires Character, CollectionCapability {
         let char = get_character_internal_mut(&user_addr);
-        char.atk = newstr;
+        char.atk = atk;
         char.atk;
     }
     #[view]
-    public fun get_atkspd(user_addr: address): u64 acquires Character, CollectionCapability {
+    public fun get_atk_spd(user_addr: address): u64 acquires Character, CollectionCapability {
         let char = get_character_internal_mut(&user_addr);
-        char.atk_speed
+        char.atk_spd
     }
 
-    public entry fun set_atkspd(user_addr: address, newatkspd: u64) acquires Character, CollectionCapability {
+    public entry fun set_atk_spd(user_addr: address, atk_spd: u64) acquires Character, CollectionCapability {
         let char = get_character_internal_mut(&user_addr);
-        char.atk_speed = newatkspd;
-        char.atk_speed;
+        char.atk_spd = atk_spd;
+        char.atk_spd;
     }
     #[view]
-    public fun get_movementspd(user_addr: address): u64 acquires Character, CollectionCapability {
+    public fun get_mv_spd(user_addr: address): u64 acquires Character, CollectionCapability {
         let char = get_character_internal_mut(&user_addr);
-        char.movement_speed
+        char.mv_spd
     }
 
-    public entry fun set_movementspd(user_addr: address, newmovement_speed: u64) acquires Character, CollectionCapability {
+    public entry fun set_mv_spd(user_addr: address, mv_spd: u64) acquires Character, CollectionCapability {
         let char = get_character_internal_mut(&user_addr);
-        char.movement_speed = newmovement_speed;
-        char.movement_speed;
+        char.mv_spd = mv_spd;
+        char.mv_spd;
     }
 
     #[view]
@@ -282,7 +352,7 @@ module main::game{
             return (string::utf8(b""), 0, 0, 0, 0, 0)
         };
         let char = get_character_internal(&user_addr);
-        (char.name, char.hp, char.def, char.atk, char.atk_speed, char.movement_speed)
+        (char.name, char.hp, char.def, char.atk, char.atk_spd, char.mv_spd)
     }
 
     // Returns true if this address owns an Aptogotchi
