@@ -1,7 +1,7 @@
 module main::game{
 
     use aptos_framework::account::{Self, SignerCapability};
-    use aptos_framework::object::{Self};
+    use aptos_framework::object::{Self, Object};
     // use aptos_framework::timestamp;
     use aptos_token_objects::collection;
     use aptos_token_objects::token::{Self, Token};
@@ -18,13 +18,15 @@ module main::game{
 
     struct Character has key {
         name: String,
+        character_id: u64,
         hp:u64,
         def:u64,
         atk:u64,
         atk_spd:u64,
         mv_spd:u64,
         mutator_ref: token::MutatorRef,
-        burn_ref: token::BurnRef
+        burn_ref: token::BurnRef,
+        property_mutator_ref: property_map::MutatorRef,
     }
 
     // Tokens require a signer to create, so this is the signer for the collection
@@ -38,6 +40,8 @@ module main::game{
     const UC_CHARACTER_COLLECTION_NAME: vector<u8> = b"UC Character Collection Name";
     const UC_CHARACTER_COLLECTION_DESCRIPTION: vector<u8> = b"UC Character Collection Description";
     const UC_CHARACTER_COLLECTION_URI: vector<u8> = b"https://aptos.dev/img/nyan.jpeg";
+    const CHARACTER_1_NAME: vector<u8> = b"Lyra Frostwhisper";
+    const CHARACTER_2_NAME: vector<u8> = b"Orion Starcaster";
 
     fun init_module(account: &signer) {
         let (token_resource, token_signer_cap) = account::create_resource_account(
@@ -75,81 +79,26 @@ module main::game{
         );
     }
 
-    public entry fun mint_character(user: &signer, token_name: String,
-         hp: u64, def: u64, atk: u64,
-         atk_spd: u64, mv_spd: u64) acquires CollectionCapability {
-        let uri = string::utf8(UC_CHARACTER_COLLECTION_URI);
-        let description = string::utf8(UC_CHARACTER_COLLECTION_DESCRIPTION);
-        // let token_name = to_string(&address_of(user));
-
-        let constructor_ref = token::create_named_token(
-            &get_token_signer(),
-            string::utf8(UC_CHARACTER_COLLECTION_NAME),
-            description,
-            token_name,
-            option::none(),
-            uri,
-        );
-
-        let token_signer = object::generate_signer(&constructor_ref);
-        let mutator_ref = token::generate_mutator_ref(&constructor_ref);
-        let burn_ref = token::generate_burn_ref(&constructor_ref);
-        let property_mutator_ref = property_map::generate_mutator_ref(&constructor_ref);
-
-        // Initializes the value with the given value in armor. Not needed to store it globally for now.
-        // move_to(&object_signer, EquipmentStats { value: restoration_value });
-
-        // Initialize the property map.
-        let properties = property_map::prepare_input(vector[], vector[], vector[]);
-        property_map::init(&constructor_ref, properties);
-        property_map::add_typed(
-            &property_mutator_ref,
-            string::utf8(b"ATK"),
-            atk
-        );
-        property_map::add_typed(
-            &property_mutator_ref,
-            string::utf8(b"DEF"),
-            def
-        );
-        property_map::add_typed(
-            &property_mutator_ref,
-            string::utf8(b"HP"),
-            hp
-        );
-        property_map::add_typed(
-            &property_mutator_ref,
-            string::utf8(b"ATK_SPD"),
-            atk_spd
-        );
-        property_map::add_typed(
-            &property_mutator_ref,
-            string::utf8(b"MV_SPD"),
-            mv_spd
-        );
-
-        let new_char = Character {
-            name: token_name,
-            hp: hp,
-            def: def,
-            atk: atk,
-            atk_spd: atk_spd,
-            mv_spd: mv_spd,
-            mutator_ref,
-            burn_ref,
-        };
-
-        move_to(&token_signer, new_char);
-        let created_token = object::object_from_constructor_ref<Token>(&constructor_ref);
-        object::transfer(&get_token_signer() , created_token, signer::address_of(user));
+    public entry fun mint_character(user: &signer, character_id: u64) acquires CollectionCapability {
+        if (character_id == 1) {
+            create_character(user, 1, string::utf8(CHARACTER_1_NAME), 
+            100, 10, 11, 
+            12, 50);
+        } 
+        else if (character_id == 2) {
+            create_character(user, 2, string::utf8(CHARACTER_2_NAME), 
+            100, 10, 11, 
+            12, 50);
+        }
     }
 
-    public entry fun mint_character_unlimited(user: &signer, token_name: String,
-         hp: u64, def: u64, atk: u64,
-         atk_spd: u64, mv_spd: u64) acquires CollectionCapability {
+    fun create_character(
+        user: &signer, character_id: u64, token_name: String,
+         hp: u64, atk: u64, def: u64,
+         atk_spd: u64, mv_spd: u64
+    ): Object<Character> acquires CollectionCapability {
         let uri = string::utf8(UC_CHARACTER_COLLECTION_URI);
         let description = string::utf8(UC_CHARACTER_COLLECTION_DESCRIPTION);
-        // let token_name = to_string(&address_of(user));
 
         let constructor_ref = token::create_from_account(
             &get_token_signer(),
@@ -165,12 +114,14 @@ module main::game{
         let burn_ref = token::generate_burn_ref(&constructor_ref);
         let property_mutator_ref = property_map::generate_mutator_ref(&constructor_ref);
 
-        // Initializes the value with the given value in armor. Not needed to store it globally for now.
-        // move_to(&object_signer, EquipmentStats { value: restoration_value });
-
         // Initialize the property map.
         let properties = property_map::prepare_input(vector[], vector[], vector[]);
         property_map::init(&constructor_ref, properties);
+        property_map::add_typed(
+            &property_mutator_ref,
+            string::utf8(b"HP"),
+            hp
+        );
         property_map::add_typed(
             &property_mutator_ref,
             string::utf8(b"ATK"),
@@ -181,11 +132,7 @@ module main::game{
             string::utf8(b"DEF"),
             def
         );
-        property_map::add_typed(
-            &property_mutator_ref,
-            string::utf8(b"HP"),
-            hp
-        );
+
         property_map::add_typed(
             &property_mutator_ref,
             string::utf8(b"ATK_SPD"),
@@ -199,33 +146,33 @@ module main::game{
 
         let new_char = Character {
             name: token_name,
+            character_id: character_id,
             hp: hp,
-            def: def,
             atk: atk,
+            def: def,
             atk_spd: atk_spd,
             mv_spd: mv_spd,
             mutator_ref,
             burn_ref,
+            property_mutator_ref
         };
 
         move_to(&token_signer, new_char);
         let created_token = object::object_from_constructor_ref<Token>(&constructor_ref);
         object::transfer(&get_token_signer() , created_token, signer::address_of(user));
+        object::address_to_object(signer::address_of(&token_signer))
     }
 
-    fun get_character_address(creator_addr: &address): (address) acquires CollectionCapability {
-        let collection = string::utf8(UC_CHARACTER_COLLECTION_NAME);
-        let token_name = to_string(creator_addr);
-        let creator = &get_token_signer();
-        let token_address = token::create_token_address(
-            &signer::address_of(creator),
-            &collection,
-            &token_name,
-        );
+    entry fun upgrade_character(character_object: Object<Character>) acquires Character {
+        let character_token_address = object::object_address(&character_object);
+        let character = borrow_global_mut<Character>(character_token_address);
+        // Gets `property_mutator_ref` to update the attack point in the property map.
+        let property_mutator_ref = &character.property_mutator_ref;
+        // Updates the attack point in the property map.
+        let current_atk = character.atk;
+        property_map::update_typed(property_mutator_ref, &string::utf8(b"ATK"), current_atk + 5);
 
-        token_address
     }
-
 
     inline fun get_character_internal(creator_addr: &address): (&Character) acquires Character {
         let collection = string::utf8(UC_CHARACTER_COLLECTION_NAME);
@@ -355,71 +302,31 @@ module main::game{
         (char.name, char.hp, char.def, char.atk, char.atk_spd, char.mv_spd)
     }
 
-    // Returns true if this address owns an Aptogotchi
-    #[view]
-    public fun has_character(owner_addr: address): (bool) acquires CollectionCapability {
-        let token_address = get_character_address(&owner_addr);
-        let has_character = exists<Character>(token_address);
-
-        has_character
-    }
-
      #[test_only]
     public fun init_module_for_test(creator: &signer) {
         init_module(creator);
     }
 
     #[test(creator = @main, user1 = @0x456, _user2 = @0x789)]
-    public fun test_mint(creator: &signer, user1: &signer, _user2: &signer) acquires CollectionCapability {
+    public fun test_mint(creator: &signer, user1: &signer, _user2: &signer) acquires CollectionCapability, Character {
    
         init_module(creator);
 
-        // -------------------------------------------
-        // Creator mints and sends 100 irons to User1.
-        // -------------------------------------------
-        // let user1_addr = signer::address_of(user1);
-        // let user2_addr = signer::address_of(user2);
+        mint_character(user1, 1);
+        mint_character(_user2, 2);
 
-        mint_character_unlimited(user1, string::utf8(b"Jane") , 100, 12, 5, 10, 20);
-        mint_character_unlimited(user1, string::utf8(b"Jane") , 101, 12, 5, 10, 20);
+        let user_1_address = signer::address_of(user1);
 
-        // let owns_character = has_character(signer::address_of(user1));
-        // assert!(owns_character, 1);
+        let char1 = create_character(user1, 1,  string::utf8(CHARACTER_1_NAME), 
+            100, 10, 11, 
+            12, 50);
 
-        // let iron_armor_token = object::address_to_object<ArmorToken>(
-        //     equipment_token_address(
-        //         string::utf8(ARMOR_COLLECTION_NAME), 
-        //         string::utf8(IRON_ARMOR_TOKEN_NAME)
-        //     )
-        // );
-        // Assert that the user1 has 100 irons.
-        // assert!(armor_balance(user1_addr, iron_armor_token) == 100, 0);
-        // assert!(armor_balance(user2_addr, iron_armor_token) == 200, 0);
+        assert!(object::is_owner(char1, user_1_address), 10);
+        upgrade_character(char1);
+        assert!(property_map::read_u64(&char1, &string::utf8(b"ATK"))==15, 100);
 
-        // -------------------------------------------
-        // Creator mints and sends 200 leathers to User2.
-        // -------------------------------------------
-        // let user2_addr = signer::address_of(user2);
-        // mint_equipment(creator, user2_addr, string::utf8(ARMOR_COLLECTION_NAME), string::utf8(LEATHER_ARMOR_TOKEN_NAME), 100);
-        // let leather_token = object::address_to_object<ArmorToken>(equipment_token_address(
-        //     string::utf8(ARMOR_COLLECTION_NAME), 
-        //     string::utf8(LEATHER_ARMOR_TOKEN_NAME)
-        // ));
-        // Assert that the user2 has 200 leathers.
-        // assert!(armor_balance(user2_addr, leather_token) == 100, 0);
-
-        // ------------------------------
-        // User1 sends 10 irons to User2.
-        // ------------------------------
-        // transfer_equipment(user2, user1_addr, string::utf8(ARMOR_COLLECTION_NAME), string::utf8(LEATHER_ARMOR_TOKEN_NAME) , 10);
-        // Assert that the user1 has 90 irons.
-        // assert!(armor_balance(user2_addr, leather_token) == 90, 0);
-        // Assert that the user2 has 10 irons.
-        // assert!(armor_balance(user1_addr, leather_token) == 10, 0);
-
-        // burn_armor(user2, leather_token, 90);
-        // assert!(armor_balance(user2_addr, leather_token) == 0, 0);
-
+        
+        
     }
 
 }
