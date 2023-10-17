@@ -2,6 +2,8 @@ module main::game{
 
     use aptos_framework::account::{Self, SignerCapability};
     use aptos_framework::object::{Self, Object};
+    use aptos_std::smart_table::{Self, SmartTable};
+
     // use aptos_framework::timestamp;
     use aptos_token_objects::collection;
     use aptos_token_objects::token::{Self, Token};
@@ -20,8 +22,8 @@ module main::game{
         name: String,
         character_id: u64,
         hp:u64,
-        def:u64,
         atk:u64,
+        def:u64,
         atk_spd:u64,
         mv_spd:u64,
         mutator_ref: token::MutatorRef,
@@ -29,10 +31,24 @@ module main::game{
         property_mutator_ref: property_map::MutatorRef,
     }
 
+    struct CharacterStats has key, store {
+        name: String,
+        character_id: u64,
+        hp:u64,
+        atk:u64,
+        def:u64,
+        atk_spd:u64,
+        mv_spd:u64,
+    }
+
     // Tokens require a signer to create, so this is the signer for the collection
     struct CollectionCapability has key, drop {
         capability: SignerCapability,
         burn_signer_capability: SignerCapability,
+    }
+
+    struct CharactersInfo has key {
+        table: SmartTable<u64, CharacterStats>
     }
 
     const APP_SIGNER_CAPABILITY_SEED: vector<u8> = b"APP_SIGNER_CAPABILITY";
@@ -58,6 +74,26 @@ module main::game{
         });
 
         create_character_collection(&token_resource);
+        
+        let characters_info_table = aptos_std::smart_table::new();
+
+        let character_stats = CharacterStats{
+            name: string::utf8(CHARACTER_1_NAME),
+            character_id: 0,
+            hp: 100,
+            atk: 10,
+            def: 12,
+            atk_spd: 14,
+            mv_spd: 50,
+        };
+
+        let table_length = aptos_std::smart_table::length(&characters_info_table);
+
+        smart_table::add(&mut characters_info_table, table_length, character_stats);
+        let characters_info = CharactersInfo{
+            table: characters_info_table
+        };
+        move_to(account, characters_info);
         
     }
 
@@ -328,5 +364,9 @@ module main::game{
         
         
     }
+    // TODO: Viewing Function of properties of object
+    // TODO: Adding character to table only by admin
+    // TODO: Test if properties of minted character is the same as that stored in table.
+
 
 }
