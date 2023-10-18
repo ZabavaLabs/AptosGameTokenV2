@@ -31,7 +31,7 @@ module main::game{
         property_mutator_ref: property_map::MutatorRef,
     }
 
-    struct CharacterStats has key, store {
+    struct CharacterInfoEntry has key, store, copy, drop {
         name: String,
         character_id: u64,
         hp:u64,
@@ -48,7 +48,7 @@ module main::game{
     }
 
     struct CharactersInfo has key {
-        table: SmartTable<u64, CharacterStats>
+        table: SmartTable<u64, CharacterInfoEntry>
     }
 
     const APP_SIGNER_CAPABILITY_SEED: vector<u8> = b"APP_SIGNER_CAPABILITY";
@@ -77,7 +77,7 @@ module main::game{
         
         let characters_info_table = aptos_std::smart_table::new();
 
-        let character_stats = CharacterStats{
+        let character_stats = CharacterInfoEntry{
             name: string::utf8(CHARACTER_1_NAME),
             character_id: 0,
             hp: 100,
@@ -115,17 +115,13 @@ module main::game{
         );
     }
 
-    public entry fun mint_character(user: &signer, character_id: u64) acquires CollectionCapability {
-        if (character_id == 1) {
-            create_character(user, 1, string::utf8(CHARACTER_1_NAME), 
-            100, 10, 11, 
-            12, 50);
-        } 
-        else if (character_id == 2) {
-            create_character(user, 2, string::utf8(CHARACTER_2_NAME), 
-            100, 10, 11, 
-            12, 50);
-        }
+    public entry fun mint_character(user: &signer, character_id: u64) acquires CollectionCapability, CharactersInfo {
+        assert!(character_id_exists(character_id), 1);
+        let character_info_entry = get_character_info_entry(character_id);        
+        create_character(user, character_id, character_info_entry.name, character_info_entry.hp, 
+        character_info_entry.atk, character_info_entry.def,
+        character_info_entry.atk_spd, character_info_entry.mv_spd);
+
     }
 
     fun create_character(
@@ -150,6 +146,8 @@ module main::game{
         let burn_ref = token::generate_burn_ref(&constructor_ref);
         let property_mutator_ref = property_map::generate_mutator_ref(&constructor_ref);
 
+
+        // let characters_info_table = 
         // Initialize the property map.
         let properties = property_map::prepare_input(vector[], vector[], vector[]);
         property_map::init(&constructor_ref, properties);
@@ -250,6 +248,26 @@ module main::game{
     //     token::burn(&char.burn_ref);
     // }
 
+    // ANCHOR Aptos Utility Functions
+
+    public(friend) fun add_character_entry(object: CharacterInfoEntry) acquires CharactersInfo {
+        let characters_info_table = &mut borrow_global_mut<CharactersInfo>(@main).table;
+        let table_length = aptos_std::smart_table::length(characters_info_table);
+        smart_table::add(characters_info_table, table_length, object);
+    }
+
+    public fun character_id_exists(character_id: u64): bool acquires CharactersInfo {
+        let characters_info_table = &borrow_global<CharactersInfo>(@main).table;
+        smart_table::contains(characters_info_table, character_id)
+    }
+
+    public fun get_character_info_entry(character_id: u64): CharacterInfoEntry acquires CharactersInfo {
+        let characters_info_table = &borrow_global<CharactersInfo>(@main).table;
+        *smart_table::borrow(characters_info_table, character_id)
+    }
+
+    // ANCHOR Aptos View Functions
+
     #[view]
     public fun get_name(user_addr: address): String acquires Character, CollectionCapability {
         let char = get_character_internal_mut(&user_addr);
@@ -338,22 +356,31 @@ module main::game{
         (char.name, char.hp, char.def, char.atk, char.atk_spd, char.mv_spd)
     }
 
-     #[test_only]
+
+
+
+    // ANCHOR Aptos Contract Tests
+
+    #[test_only]
     public fun init_module_for_test(creator: &signer) {
         init_module(creator);
     }
 
     #[test(creator = @main, user1 = @0x456, _user2 = @0x789)]
-    public fun test_mint(creator: &signer, user1: &signer, _user2: &signer) acquires CollectionCapability, Character {
+    public fun test_mint(creator: &signer, user1: &signer, _user2: &signer) acquires CollectionCapability, Character, CharactersInfo {
    
         init_module(creator);
 
-        mint_character(user1, 1);
-        mint_character(_user2, 2);
+        // let character = Character{
 
+        // }
+        // add_character_entry()
+
+        mint_character(user1, 0);
+   
         let user_1_address = signer::address_of(user1);
 
-        let char1 = create_character(user1, 1,  string::utf8(CHARACTER_1_NAME), 
+        let char1 = create_character(user1, 0,  string::utf8(CHARACTER_1_NAME), 
             100, 10, 11, 
             12, 50);
 
