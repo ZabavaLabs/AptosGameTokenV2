@@ -31,7 +31,7 @@ module main::game{
         property_mutator_ref: property_map::MutatorRef,
     }
 
-    struct CharacterInfoEntry has key, store, copy, drop {
+    struct CharacterInfoEntry has store, copy, drop {
         name: String,
         character_id: u64,
         hp:u64,
@@ -41,15 +41,16 @@ module main::game{
         mv_spd:u64,
     }
 
+    struct CharactersInfo has key {
+        table: SmartTable<u64, CharacterInfoEntry>
+    }
+
     // Tokens require a signer to create, so this is the signer for the collection
     struct CollectionCapability has key, drop {
         capability: SignerCapability,
         burn_signer_capability: SignerCapability,
     }
 
-    struct CharactersInfo has key {
-        table: SmartTable<u64, CharacterInfoEntry>
-    }
 
     const APP_SIGNER_CAPABILITY_SEED: vector<u8> = b"APP_SIGNER_CAPABILITY";
     const BURN_SIGNER_CAPABILITY_SEED: vector<u8> = b"BURN_SIGNER_CAPABILITY";
@@ -261,12 +262,19 @@ module main::game{
         smart_table::contains(characters_info_table, character_id)
     }
 
+    // ANCHOR Aptos View Functions
+
+    #[view]
     public fun get_character_info_entry(character_id: u64): CharacterInfoEntry acquires CharactersInfo {
         let characters_info_table = &borrow_global<CharactersInfo>(@main).table;
         *smart_table::borrow(characters_info_table, character_id)
     }
 
-    // ANCHOR Aptos View Functions
+    #[view]
+    public fun get_characters_table_length(): u64 acquires CharactersInfo {
+        let characters_info_table = &borrow_global<CharactersInfo>(@main).table;
+        aptos_std::smart_table::length(characters_info_table)
+    }
 
     #[view]
     public fun get_name(user_addr: address): String acquires Character, CollectionCapability {
@@ -338,32 +346,53 @@ module main::game{
         char.mv_spd;
     }
 
-    #[view]
-    public fun get_character(user_addr: address): (String, u64, u64, u64, u64, u64) acquires Character, CollectionCapability {
-        let collection = string::utf8(UC_CHARACTER_COLLECTION_NAME);
-        let token_name = to_string(&user_addr);
-        let token_address = token::create_token_address(
-            &user_addr,
-            &collection,
-            &token_name,
-        );
-        let has_char = exists<Character>(token_address);
+    // #[view]
+    // public fun get_character_stats(char: Object<Character>): (String, u64, u64, u64, u64, u64) acquires Character, CollectionCapability {
+    //     let collection = string::utf8(UC_CHARACTER_COLLECTION_NAME);
+    //     let token_name = to_string(&user_addr);
+    //     let token_address = token::create_token_address(
+    //         &user_addr,
+    //         &collection,
+    //         &token_name,
+    //     );
+    //     let has_char = exists<Character>(token_address);
 
-        if (!has_char) {
-            return (string::utf8(b""), 0, 0, 0, 0, 0)
-        };
-        let char = get_character_internal(&user_addr);
-        (char.name, char.hp, char.def, char.atk, char.atk_spd, char.mv_spd)
-    }
+    //     if (!has_char) {
+    //         return (string::utf8(b""), 0, 0, 0, 0, 0)
+    //     };
+    //     let char = get_character_internal(&user_addr);
+    //     (char.name, char.hp, char.def, char.atk, char.atk_spd, char.mv_spd)
+    // }
+
+ 
 
 
+    // ANCHOR TESTING
 
-
-    // ANCHOR Aptos Contract Tests
-
-    #[test_only]
+   
+    // TODO: Viewing Function of properties of object
+    // TODO: Adding character to table only by admin
+    // TODO: Test if properties of minted character is the same as that stored in table.
+    #[test(creator = @main)]
     public fun init_module_for_test(creator: &signer) {
         init_module(creator);
+    }
+
+    #[test(creator = @main)]
+    public fun test_character_addition_to_table(creator: &signer) acquires CharactersInfo {
+        init_module(creator);
+        let character_info_entry = CharacterInfoEntry{
+            name: string::utf8(b"Good"),
+            character_id: 1,
+            hp: 2,
+            atk: 3,
+            def: 4,
+            atk_spd: 5,
+            mv_spd: 6,
+        };
+        add_character_entry(character_info_entry);
+        add_character_entry(character_info_entry);
+        assert!(get_characters_table_length()==3,5)
     }
 
     #[test(creator = @main, user1 = @0x456, _user2 = @0x789)]
@@ -388,12 +417,8 @@ module main::game{
         upgrade_character(char1);
         assert!(property_map::read_u64(&char1, &string::utf8(b"ATK"))==15, 100);
 
-        
-        
-    }
-    // TODO: Viewing Function of properties of object
-    // TODO: Adding character to table only by admin
-    // TODO: Test if properties of minted character is the same as that stored in table.
+        assert!(get_character_info_entry(0).hp==100, 10);
 
+    }
 
 }
