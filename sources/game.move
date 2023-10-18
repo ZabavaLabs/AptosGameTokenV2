@@ -18,6 +18,12 @@ module main::game{
     // use std::debug::print;
     // use std::vector;
 
+    const ENOT_CREATOR: u64 = 1;
+    const ENOT_OWNER: u64 = 2;
+    const ECHAR_ID_NOT_FOUND: u64 = 3;
+    const EINVALID_TABLE_LENGTH: u64 = 4;
+    const EINVALID_PROPERTY_VALUE: u64 = 5;
+    
     struct Character has key {
         name: String,
         character_id: u64,
@@ -117,7 +123,7 @@ module main::game{
     }
 
     public entry fun mint_character(user: &signer, character_id: u64) acquires CollectionCapability, CharactersInfo {
-        assert!(character_id_exists(character_id), 1);
+        assert!(character_id_exists(character_id), ECHAR_ID_NOT_FOUND);
         let character_info_entry = get_character_info_entry(character_id);        
         create_character(user, character_id, character_info_entry.name, character_info_entry.hp, 
         character_info_entry.atk, character_info_entry.def,
@@ -251,10 +257,23 @@ module main::game{
 
     // ANCHOR Aptos Utility Functions
 
-    public(friend) fun add_character_entry(object: CharacterInfoEntry) acquires CharactersInfo {
+    public(friend) entry fun add_character_entry(account: &signer , name: String, 
+        hp: u64, atk: u64,
+        def: u64, atk_spd: u64, mv_spd: u64) acquires CharactersInfo {
+        assert!(signer::address_of(account) == @main, ENOT_CREATOR);
+
         let characters_info_table = &mut borrow_global_mut<CharactersInfo>(@main).table;
         let table_length = aptos_std::smart_table::length(characters_info_table);
-        smart_table::add(characters_info_table, table_length, object);
+        let character_info_entry = CharacterInfoEntry{
+            name: name,
+            character_id: table_length,
+            hp,
+            atk,
+            def,
+            atk_spd,
+            mv_spd,
+        };
+        smart_table::add(characters_info_table, table_length, character_info_entry);
     }
 
     public fun character_id_exists(character_id: u64): bool acquires CharactersInfo {
@@ -381,44 +400,46 @@ module main::game{
     #[test(creator = @main)]
     public fun test_character_addition_to_table(creator: &signer) acquires CharactersInfo {
         init_module(creator);
-        let character_info_entry = CharacterInfoEntry{
-            name: string::utf8(b"Good"),
-            character_id: 1,
-            hp: 2,
-            atk: 3,
-            def: 4,
-            atk_spd: 5,
-            mv_spd: 6,
-        };
-        add_character_entry(character_info_entry);
-        add_character_entry(character_info_entry);
-        assert!(get_characters_table_length()==3,5)
+        add_character_entry(creator, string::utf8(b"Char1"), 100, 10, 11, 12, 50);
+        add_character_entry(creator, string::utf8(b"Char2"), 110, 10, 11, 12, 50);
+
+        assert!(get_characters_table_length()==3, EINVALID_TABLE_LENGTH)
+    }
+
+    #[test(creator = @main, user1 = @0x456 )]
+    #[expected_failure(abort_code = ENOT_CREATOR)]
+    public fun test_add_character_by_others(creator: &signer, user1: &signer) acquires CharactersInfo {
+        init_module(creator);
+        add_character_entry(user1, string::utf8(b"Char1"), 100, 10, 11, 12, 50);
+
     }
 
     #[test(creator = @main, user1 = @0x456, _user2 = @0x789)]
     public fun test_mint(creator: &signer, user1: &signer, _user2: &signer) acquires CollectionCapability, Character, CharactersInfo {
    
         init_module(creator);
-
-        // let character = Character{
-
-        // }
-        // add_character_entry()
-
         mint_character(user1, 0);
-   
+        add_character_entry(creator, string::utf8(b"Char1"), 100, 10, 11, 12, 50);
+        mint_character(user1, 1);
+
         let user_1_address = signer::address_of(user1);
 
         let char1 = create_character(user1, 0,  string::utf8(CHARACTER_1_NAME), 
             100, 10, 11, 
             12, 50);
 
-        assert!(object::is_owner(char1, user_1_address), 10);
+        assert!(object::is_owner(char1, user_1_address), ENOT_OWNER);
         upgrade_character(char1);
-        assert!(property_map::read_u64(&char1, &string::utf8(b"ATK"))==15, 100);
+        assert!(property_map::read_u64(&char1, &string::utf8(b"ATK"))==15, EINVALID_PROPERTY_VALUE);
 
-        assert!(get_character_info_entry(0).hp==100, 10);
+        assert!(get_character_info_entry(0).hp==100, EINVALID_PROPERTY_VALUE);
 
     }
 
+    #[test(creator = @main, user1 = @0x456)]
+    #[expected_failure(abort_code=ECHAR_ID_NOT_FOUND)]
+    public fun test_mint_unlisted_char(creator: &signer, user1: &signer) acquires CollectionCapability, CharactersInfo {
+        init_module(creator);
+        mint_character(user1, 1);
+    }
 }
