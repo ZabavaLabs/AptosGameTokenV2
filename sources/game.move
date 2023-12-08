@@ -153,8 +153,6 @@ module main::game{
         let burn_ref = token::generate_burn_ref(&constructor_ref);
         let property_mutator_ref = property_map::generate_mutator_ref(&constructor_ref);
 
-
-        // let characters_info_table = 
         // Initialize the property map.
         let properties = property_map::prepare_input(vector[], vector[], vector[]);
         property_map::init(&constructor_ref, properties);
@@ -390,7 +388,6 @@ module main::game{
 
    
     // TODO: Viewing Function of properties of object
-    // TODO: Adding character to table only by admin
     // TODO: Test if properties of minted character is the same as that stored in table.
     #[test(creator = @main)]
     public fun init_module_for_test(creator: &signer) {
