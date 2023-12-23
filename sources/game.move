@@ -9,12 +9,17 @@ module main::game{
     use aptos_token_objects::token::{Self, Token};
     use aptos_token_objects::property_map;
 
+    use aptos_framework::fungible_asset::{Self, Metadata};
+    use aptos_framework::primary_fungible_store;
+
+    use std::error;
     use std::option;
     use std::signer;
     // use std::signer::address_of;
     use std::string::{Self, String};
     use aptos_std::string_utils::{to_string};
 
+    use main::gem::{Self, GemToken};
     // use std::debug::print;
     // use std::vector;
 
@@ -66,6 +71,8 @@ module main::game{
     const CHARACTER_1_NAME: vector<u8> = b"Lyra Frostwhisper";
     const CHARACTER_2_NAME: vector<u8> = b"Orion Starcaster";
 
+    
+
     fun init_module(account: &signer) {
         let (token_resource, token_signer_cap) = account::create_resource_account(
             account,
@@ -101,6 +108,19 @@ module main::game{
             table: characters_info_table
         };
         move_to(account, characters_info);
+
+
+        // create_fungible_token(
+        //     sender,
+        //     string::utf8(b"Coin Token Description"),
+        //     string::utf8(b"Coin Name ""),
+        //     string::utf8(b"https://raw.githubusercontent.com/aptos-labs/aptos-core/main/ecosystem/typescript/sdk/examples/typescript/metadata/knight/Corn"),
+        //     string::utf8(b"Corn"),
+        //     string::utf8(b"CORN"),
+        //     string::utf8(b"https://raw.githubusercontent.com/aptos-labs/aptos-core/main/ecosystem/typescript/sdk/examples/typescript/metadata/knight/Corn.png"),
+        //     string::utf8(b"https://www.aptoslabs.com"),
+        //     5,
+        // );
         
     }
 
@@ -202,14 +222,16 @@ module main::game{
         object::address_to_object(signer::address_of(&token_signer))
     }
 
+    // entry fun upgrade_character(from: &signer, character_object: Object<Character>, gem_object: Object<GemToken>) acquires Character {
     entry fun upgrade_character(character_object: Object<Character>) acquires Character {
+        // gem::burn_gem(from, gem_object, amount);
         let character_token_address = object::object_address(&character_object);
         let character = borrow_global_mut<Character>(character_token_address);
         // Gets `property_mutator_ref` to update the attack point in the property map.
         let property_mutator_ref = &character.property_mutator_ref;
         // Updates the attack point in the property map.
         let current_atk = character.atk;
-        property_map::update_typed(property_mutator_ref, &string::utf8(b"ATK"), current_atk + 5);
+        property_map::update_typed(property_mutator_ref, &string::utf8(b"ATK"), current_atk + (5 ));
 
     }
 
@@ -411,8 +433,8 @@ module main::game{
 
     }
 
-    #[test(creator = @main, user1 = @0x456, _user2 = @0x789)]
-    public fun test_mint(creator: &signer, user1: &signer, _user2: &signer) acquires CollectionCapability, Character, CharactersInfo {
+    #[test(creator = @main, user1 = @0x456)]
+    public fun test_mint(creator: &signer, user1: &signer) acquires CollectionCapability, Character, CharactersInfo {
    
         init_module(creator);
         mint_character(user1, 0);
@@ -428,7 +450,6 @@ module main::game{
         assert!(object::is_owner(char1, user_1_address), ENOT_OWNER);
         upgrade_character(char1);
         assert!(property_map::read_u64(&char1, &string::utf8(b"ATK"))==15, EINVALID_PROPERTY_VALUE);
-
         assert!(get_character_info_entry(0).hp==100, EINVALID_PROPERTY_VALUE);
 
     }
@@ -439,4 +460,19 @@ module main::game{
         init_module(creator);
         mint_character(user1, 1);
     }
+
+    // #[test(creator = @main, user1 = @0x456)]
+    // public fun test_upgrade_character(creator: &signer, user1: &signer) acquires CollectionCapability, Character, CharactersInfo {
+   
+    //     init_module(creator);
+    //     let char1 = create_character(user1, 0,  string::utf8(CHARACTER_1_NAME), 
+    //         100, 10, 11, 
+    //         12, 50);
+
+    //     assert!(object::is_owner(char1, user_1_address), ENOT_OWNER);
+    //     upgrade_character(char1);
+    //     assert!(property_map::read_u64(&char1, &string::utf8(b"ATK"))==15, EINVALID_PROPERTY_VALUE);
+    //     assert!(get_character_info_entry(0).hp==100, EINVALID_PROPERTY_VALUE);
+
+    // }
 }
