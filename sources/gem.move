@@ -12,6 +12,8 @@ module main::gem {
     use std::signer;
     use std::string::{Self, String};
 
+    friend main::game;
+
     /// The token does not exist
     const ETOKEN_DOES_NOT_EXIST: u64 = 1;
     /// The provided signer is not the creator
@@ -88,9 +90,9 @@ module main::gem {
 
     /// Mints the given amount of the gem token to the given receiver.
     // TODO: Exchange stablecoins for gems when minting to make users pay for gems.
-    public entry fun mint_gem(creator: &signer, receiver: address, amount: u64) acquires GemToken {
+    public entry fun mint_gem( receiver: address, amount: u64) acquires GemToken {
         let gem_token = object::address_to_object<GemToken>(gem_token_address());
-        mint_internal(creator, gem_token, receiver, amount);
+        mint_internal( gem_token, receiver, amount);
     }
 
 
@@ -183,24 +185,20 @@ module main::gem {
     }
 
     /// The internal mint function.
-    fun mint_internal(creator: &signer, token: Object<GemToken>, receiver: address, amount: u64) acquires GemToken {
-        let gem_token = authorized_borrow<GemToken>(creator, &token);
+    fun mint_internal(token: Object<GemToken>, receiver: address, amount: u64) acquires GemToken {
+        let gem_token = authorized_borrow<GemToken>( &token);
         let fungible_asset_mint_ref = &gem_token.fungible_asset_mint_ref;
         let fa = fungible_asset::mint(fungible_asset_mint_ref, amount);
         primary_fungible_store::deposit(receiver, fa);
     }
 
-    inline fun authorized_borrow<T: key>(creator: &signer, token: &Object<T>): &GemToken {
+    inline fun authorized_borrow<T: key>(token: &Object<T>): &GemToken {
         let token_address = object::object_address(token);
         assert!(
             exists<GemToken>(token_address),
             error::not_found(ETOKEN_DOES_NOT_EXIST),
         );
 
-        // assert!(
-        //     token::creator(*token) == signer::address_of(creator),
-        //     error::permission_denied(ENOT_CREATOR),
-        // );
         borrow_global<GemToken>(token_address)
     }
 
@@ -216,7 +214,7 @@ module main::gem {
         init_module(creator);
 
         let user1_addr = signer::address_of(user1);
-        mint_gem(creator, user1_addr, 50);
+        mint_gem( user1_addr, 50);
 
         let gem_token = object::address_to_object<GemToken>(gem_token_address());
 
@@ -231,7 +229,7 @@ module main::gem {
         let user1_addr = signer::address_of(user1);
         let user2_addr = signer::address_of(user2);
 
-        mint_gem(user1, user2_addr, 50);
+        mint_gem(user2_addr, 50);
 
         let gem_token = object::address_to_object<GemToken>(gem_token_address());
         assert!(gem_balance(user2_addr, gem_token) == 50, 0);

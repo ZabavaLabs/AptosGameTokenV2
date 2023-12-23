@@ -28,6 +28,8 @@ module main::game{
     const ECHAR_ID_NOT_FOUND: u64 = 3;
     const EINVALID_TABLE_LENGTH: u64 = 4;
     const EINVALID_PROPERTY_VALUE: u64 = 5;
+    const EINVALID_BALANCE: u64 = 6;
+    const EINSUFFICIENT_BALANCE: u64 = 65540;
     
     struct Character has key {
         name: String,
@@ -222,16 +224,16 @@ module main::game{
         object::address_to_object(signer::address_of(&token_signer))
     }
 
-    // entry fun upgrade_character(from: &signer, character_object: Object<Character>, gem_object: Object<GemToken>) acquires Character {
-    entry fun upgrade_character(character_object: Object<Character>) acquires Character {
-        // gem::burn_gem(from, gem_object, amount);
+    entry fun upgrade_character(from: &signer, character_object: Object<Character>, gem_object: Object<GemToken>, amount: u64) acquires Character {
+        assert!(object::is_owner(character_object, signer::address_of(from)), ENOT_OWNER);
+        gem::burn_gem(from, gem_object, amount);
         let character_token_address = object::object_address(&character_object);
         let character = borrow_global_mut<Character>(character_token_address);
         // Gets `property_mutator_ref` to update the attack point in the property map.
         let property_mutator_ref = &character.property_mutator_ref;
         // Updates the attack point in the property map.
         let current_atk = character.atk;
-        property_map::update_typed(property_mutator_ref, &string::utf8(b"ATK"), current_atk + (5 ));
+        property_map::update_typed(property_mutator_ref, &string::utf8(b"ATK"), current_atk + (5 * amount));
 
     }
 
@@ -259,21 +261,6 @@ module main::game{
         (borrow_global_mut<Character>(token_address))
     }
     
-
-    // public entry fun burn_character_internal(creator_addr: &address) acquires Character,CollectionCapability{
-        
-    //     let collection = string::utf8(UC_CHARACTER_COLLECTION_NAME);
-    //     let token_name = to_string(creator_addr);
-    //     let creator = &get_token_signer();
-    //     let token_address = token::create_token_address(
-    //         &signer::address_of(creator),
-    //         &collection,
-    //         &token_name,
-    //     );
-    //     let char = (borrow_global_mut<Character>(token_address));
-
-    //     token::burn(&char.burn_ref);
-    // }
 
     // ANCHOR Aptos Utility Functions
 
@@ -322,22 +309,10 @@ module main::game{
         char.name
     }
 
-    public entry fun set_name(user_addr: address, name: String) acquires Character, CollectionCapability {
-        let char = get_character_internal_mut(&user_addr);
-        char.name = name;
-        char.name;
-    }
-
     #[view]
     public fun get_hp(user_addr: address): u64 acquires Character, CollectionCapability {
         let char = get_character_internal_mut(&user_addr);
         char.hp
-    }
-
-    public entry fun set_hp(user_addr: address, hp: u64) acquires Character, CollectionCapability {
-        let char = get_character_internal_mut(&user_addr);
-        char.hp = hp;
-        char.hp;
     }
 
     #[view]
@@ -346,44 +321,26 @@ module main::game{
         char.def
     }
 
-    public entry fun set_def(user_addr: address, def: u64) acquires Character, CollectionCapability {
-        let char = get_character_internal_mut(&user_addr);
-        char.def = def;
-        char.def;
-    }
     #[view]
     public fun get_atk(user_addr: address): u64 acquires Character, CollectionCapability {
         let char = get_character_internal_mut(&user_addr);
         char.atk
     }
 
-    public entry fun set_str(user_addr: address, atk: u64) acquires Character, CollectionCapability {
-        let char = get_character_internal_mut(&user_addr);
-        char.atk = atk;
-        char.atk;
-    }
+
     #[view]
     public fun get_atk_spd(user_addr: address): u64 acquires Character, CollectionCapability {
         let char = get_character_internal_mut(&user_addr);
         char.atk_spd
     }
 
-    public entry fun set_atk_spd(user_addr: address, atk_spd: u64) acquires Character, CollectionCapability {
-        let char = get_character_internal_mut(&user_addr);
-        char.atk_spd = atk_spd;
-        char.atk_spd;
-    }
+
     #[view]
     public fun get_mv_spd(user_addr: address): u64 acquires Character, CollectionCapability {
         let char = get_character_internal_mut(&user_addr);
         char.mv_spd
     }
 
-    public entry fun set_mv_spd(user_addr: address, mv_spd: u64) acquires Character, CollectionCapability {
-        let char = get_character_internal_mut(&user_addr);
-        char.mv_spd = mv_spd;
-        char.mv_spd;
-    }
 
     // #[view]
     // public fun get_character_stats(char: Object<Character>): (String, u64, u64, u64, u64, u64) acquires Character, CollectionCapability {
@@ -434,7 +391,7 @@ module main::game{
     }
 
     #[test(creator = @main, user1 = @0x456)]
-    public fun test_mint(creator: &signer, user1: &signer) acquires CollectionCapability, Character, CharactersInfo {
+    public fun test_mint(creator: &signer, user1: &signer) acquires CollectionCapability, CharactersInfo {
    
         init_module(creator);
         mint_character(user1, 0);
@@ -448,9 +405,7 @@ module main::game{
             12, 50);
 
         assert!(object::is_owner(char1, user_1_address), ENOT_OWNER);
-        upgrade_character(char1);
-        assert!(property_map::read_u64(&char1, &string::utf8(b"ATK"))==15, EINVALID_PROPERTY_VALUE);
-        assert!(get_character_info_entry(0).hp==100, EINVALID_PROPERTY_VALUE);
+
 
     }
 
@@ -461,18 +416,51 @@ module main::game{
         mint_character(user1, 1);
     }
 
-    // #[test(creator = @main, user1 = @0x456)]
-    // public fun test_upgrade_character(creator: &signer, user1: &signer) acquires CollectionCapability, Character, CharactersInfo {
+    #[test(creator = @main, user1 = @0x456)]
+    public fun test_upgrade_character(creator: &signer, user1: &signer) acquires CollectionCapability, Character {
    
-    //     init_module(creator);
-    //     let char1 = create_character(user1, 0,  string::utf8(CHARACTER_1_NAME), 
-    //         100, 10, 11, 
-    //         12, 50);
+        init_module(creator);
+        gem::init_module_for_test(creator);
 
-    //     assert!(object::is_owner(char1, user_1_address), ENOT_OWNER);
-    //     upgrade_character(char1);
-    //     assert!(property_map::read_u64(&char1, &string::utf8(b"ATK"))==15, EINVALID_PROPERTY_VALUE);
-    //     assert!(get_character_info_entry(0).hp==100, EINVALID_PROPERTY_VALUE);
+        let char1 = create_character(user1, 0,  string::utf8(CHARACTER_1_NAME), 
+            100, 10, 11, 
+            12, 50);
 
-    // }
+        let user1_addr = signer::address_of(user1);
+        gem::mint_gem(user1_addr, 10);
+
+
+        let gem_token = object::address_to_object<GemToken>(gem::gem_token_address());
+        let gem_balance = gem::gem_balance(user1_addr, gem_token);
+
+        assert!(gem::gem_balance(user1_addr, gem_token) == 10, 0);
+
+        upgrade_character(user1, char1, gem_token , 6);
+
+        assert!(gem::gem_balance(user1_addr, gem_token) == 4, EINVALID_BALANCE);
+
+        assert!(property_map::read_u64(&char1, &string::utf8(b"ATK"))==40, EINVALID_PROPERTY_VALUE);
+
+    }
+
+    #[test(creator = @main, user1 = @0x456, user2 = @0x789)]
+    #[expected_failure(abort_code=ENOT_OWNER)]
+    public fun test_upgrade_character_wrong_ownership(creator: &signer, user1: &signer, user2: &signer) acquires CollectionCapability, Character {
+   
+        init_module(creator);
+        gem::init_module_for_test(creator);
+
+        let char1 = create_character(user1, 0,  string::utf8(CHARACTER_1_NAME), 
+            100, 10, 11, 
+            12, 50);
+
+        let user1_addr = signer::address_of(user1);
+        gem::mint_gem(user1_addr, 10);
+
+        let gem_token = object::address_to_object<GemToken>(gem::gem_token_address());
+        let gem_balance = gem::gem_balance(user1_addr, gem_token);
+
+        upgrade_character(user2, char1, gem_token , 1);
+
+    }
 }
