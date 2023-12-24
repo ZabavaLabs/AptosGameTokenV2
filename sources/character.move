@@ -1,4 +1,4 @@
-module main::game{
+module main::character{
 
     use aptos_framework::account::{Self, SignerCapability};
     use aptos_framework::object::{Self, Object};
@@ -110,19 +110,6 @@ module main::game{
             table: characters_info_table
         };
         move_to(account, characters_info);
-
-
-        // create_fungible_token(
-        //     sender,
-        //     string::utf8(b"Coin Token Description"),
-        //     string::utf8(b"Coin Name ""),
-        //     string::utf8(b"https://raw.githubusercontent.com/aptos-labs/aptos-core/main/ecosystem/typescript/sdk/examples/typescript/metadata/knight/Corn"),
-        //     string::utf8(b"Corn"),
-        //     string::utf8(b"CORN"),
-        //     string::utf8(b"https://raw.githubusercontent.com/aptos-labs/aptos-core/main/ecosystem/typescript/sdk/examples/typescript/metadata/knight/Corn.png"),
-        //     string::utf8(b"https://www.aptoslabs.com"),
-        //     5,
-        // );
         
     }
 
@@ -300,45 +287,6 @@ module main::game{
     public fun get_characters_table_length(): u64 acquires CharactersInfo {
         let characters_info_table = &borrow_global<CharactersInfo>(@main).table;
         aptos_std::smart_table::length(characters_info_table)
-    }
-
-    #[view]
-    public fun get_name(user_addr: address): String acquires Character, CollectionCapability {
-        let char = get_character_internal_mut(&user_addr);
-
-        char.name
-    }
-
-    #[view]
-    public fun get_hp(user_addr: address): u64 acquires Character, CollectionCapability {
-        let char = get_character_internal_mut(&user_addr);
-        char.hp
-    }
-
-    #[view]
-    public fun get_def(user_addr: address): u64 acquires Character, CollectionCapability {
-        let char = get_character_internal_mut(&user_addr);
-        char.def
-    }
-
-    #[view]
-    public fun get_atk(user_addr: address): u64 acquires Character, CollectionCapability {
-        let char = get_character_internal_mut(&user_addr);
-        char.atk
-    }
-
-
-    #[view]
-    public fun get_atk_spd(user_addr: address): u64 acquires Character, CollectionCapability {
-        let char = get_character_internal_mut(&user_addr);
-        char.atk_spd
-    }
-
-
-    #[view]
-    public fun get_mv_spd(user_addr: address): u64 acquires Character, CollectionCapability {
-        let char = get_character_internal_mut(&user_addr);
-        char.mv_spd
     }
 
 

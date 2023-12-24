@@ -12,7 +12,7 @@ module main::gem {
     use std::signer;
     use std::string::{Self, String};
 
-    friend main::game;
+    friend main::character;
 
     /// The token does not exist
     const ETOKEN_DOES_NOT_EXIST: u64 = 1;
@@ -160,7 +160,7 @@ module main::gem {
         let object_signer = object::generate_signer(&constructor_ref);
         let property_mutator_ref = property_map::generate_mutator_ref(&constructor_ref);
 
-        let supply = 0;
+        let decimals = 0;
 
         // Creates the fungible asset.
         primary_fungible_store::create_primary_store_enabled_fungible_asset(
@@ -168,7 +168,7 @@ module main::gem {
             option::none(),
             fungible_asset_name,
             fungible_asset_symbol,
-            supply,
+            decimals,
             icon_uri,
             project_uri,
         );
