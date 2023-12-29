@@ -3,7 +3,7 @@ name = "main"
 version = "1.0.0"
 
 [addresses]
-main = "992b1ae39fd15788bbb7fc9e52aa9dbfc7c3c3c876292cc2cc91f4da32dfa0fc"
+main = "91cfd8fbc55be87ff4c6ed43d2261eea493337000efcbe096828cd03c200c1a0"
 
 [dependencies.AptosFramework]
 git = "https://github.com/aptos-labs/aptos-core.git"
