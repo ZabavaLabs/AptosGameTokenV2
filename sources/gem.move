@@ -53,7 +53,7 @@ module main::gem {
     fun init_module(sender: &signer) {
         // Create a collection for gem tokens.
         create_gem_collection(sender);
-        // Create two gem token (i.e., Corn and Meat) as fungible tokens, meaning that there can be multiple units of them.
+
         create_gem_token_as_fungible_token(
             sender,
             string::utf8(b"Gem Token Description"),
@@ -90,9 +90,9 @@ module main::gem {
 
     /// Mints the given amount of the gem token to the given receiver.
     // TODO: Exchange stablecoins for gems when minting to make users pay for gems.
-    public entry fun mint_gem( receiver: address, amount: u64) acquires GemToken {
+    public entry fun mint_gem( caller: &signer, amount: u64) acquires GemToken {
         let gem_token = object::address_to_object<GemToken>(gem_token_address());
-        mint_internal( gem_token, receiver, amount);
+        mint_internal( gem_token, signer::address_of(caller), amount);
     }
 
 
@@ -214,7 +214,7 @@ module main::gem {
         init_module(creator);
 
         let user1_addr = signer::address_of(user1);
-        mint_gem( user1_addr, 50);
+        mint_gem(user1, 50);
 
         let gem_token = object::address_to_object<GemToken>(gem_token_address());
 
@@ -229,7 +229,7 @@ module main::gem {
         let user1_addr = signer::address_of(user1);
         let user2_addr = signer::address_of(user2);
 
-        mint_gem(user2_addr, 50);
+        mint_gem(user2, 50);
 
         let gem_token = object::address_to_object<GemToken>(gem_token_address());
         assert!(gem_balance(user2_addr, gem_token) == 50, 0);

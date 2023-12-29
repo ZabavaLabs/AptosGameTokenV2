@@ -219,7 +219,7 @@ module main::character{
         // Gets `property_mutator_ref` to update the attack point in the property map.
         let property_mutator_ref = &character.property_mutator_ref;
         // Updates the attack point in the property map.
-        let current_atk = character.atk;
+        let current_atk = property_map::read_u64(&character_object, &string::utf8(b"ATK"));
         property_map::update_typed(property_mutator_ref, &string::utf8(b"ATK"), current_atk + (5 * amount));
 
     }
@@ -375,7 +375,7 @@ module main::character{
             12, 50);
 
         let user1_addr = signer::address_of(user1);
-        gem::mint_gem(user1_addr, 10);
+        gem::mint_gem(user1, 10);
 
 
         let gem_token = object::address_to_object<GemToken>(gem::gem_token_address());
@@ -391,6 +391,38 @@ module main::character{
 
     }
 
+        #[test(creator = @main, user1 = @0x456)]
+    public fun test_upgrade_character_multiple(creator: &signer, user1: &signer) acquires CollectionCapability, Character {
+   
+        init_module(creator);
+        gem::init_module_for_test(creator);
+
+        let char1 = create_character(user1, 0,  string::utf8(CHARACTER_1_NAME), 
+            100, 10, 11, 
+            12, 50);
+
+        let user1_addr = signer::address_of(user1);
+        gem::mint_gem(user1, 20);
+
+
+        let gem_token = object::address_to_object<GemToken>(gem::gem_token_address());
+        let gem_balance = gem::gem_balance(user1_addr, gem_token);
+
+        assert!(gem::gem_balance(user1_addr, gem_token) == 20, 0);
+
+        upgrade_character(user1, char1, gem_token , 6);
+
+        assert!(gem::gem_balance(user1_addr, gem_token) == 14, EINVALID_BALANCE);
+
+        assert!(property_map::read_u64(&char1, &string::utf8(b"ATK"))==40, EINVALID_PROPERTY_VALUE);
+
+        upgrade_character(user1, char1, gem_token , 5);
+        assert!(property_map::read_u64(&char1, &string::utf8(b"ATK"))==65, EINVALID_PROPERTY_VALUE);
+
+
+    }
+
+
     #[test(creator = @main, user1 = @0x456, user2 = @0x789)]
     #[expected_failure(abort_code=ENOT_OWNER)]
     public fun test_upgrade_character_wrong_ownership(creator: &signer, user1: &signer, user2: &signer) acquires CollectionCapability, Character {
@@ -403,7 +435,7 @@ module main::character{
             12, 50);
 
         let user1_addr = signer::address_of(user1);
-        gem::mint_gem(user1_addr, 10);
+        gem::mint_gem(user1, 10);
 
         let gem_token = object::address_to_object<GemToken>(gem::gem_token_address());
         let gem_balance = gem::gem_balance(user1_addr, gem_token);
