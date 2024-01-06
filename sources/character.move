@@ -23,7 +23,7 @@ module main::character{
     // use std::debug::print;
     // use std::vector;
 
-    const ENOT_CREATOR: u64 = 1;
+    const ENOT_ADMIN: u64 = 1;
     const ENOT_OWNER: u64 = 2;
     const ECHAR_ID_NOT_FOUND: u64 = 3;
     const EINVALID_TABLE_LENGTH: u64 = 4;
@@ -31,6 +31,12 @@ module main::character{
     const EINVALID_BALANCE: u64 = 6;
     const EINSUFFICIENT_BALANCE: u64 = 65540;
     
+
+    struct SettingsData has key {
+        admin_address: address
+    }
+
+
     struct Character has key {
         name: String,
         character_id: u64,
@@ -110,7 +116,19 @@ module main::character{
             table: characters_info_table
         };
         move_to(account, characters_info);
-        
+
+        let settings = SettingsData{
+            admin_address: signer::address_of(account)
+        };
+
+        move_to(account, settings);
+    }
+
+    public entry fun edit_admin(caller: &signer, new_admin_addr: address) acquires SettingsData {
+        let caller_address = signer::address_of(caller);
+        assert_is_admin(caller_address);
+        let settings_data = borrow_global_mut<SettingsData>(@main);
+        settings_data.admin_address = new_admin_addr;
     }
 
     fun get_token_signer(): signer acquires CollectionCapability {
@@ -137,7 +155,6 @@ module main::character{
         create_character(user, character_id, character_info_entry.name, character_info_entry.hp, 
         character_info_entry.atk, character_info_entry.def,
         character_info_entry.atk_spd, character_info_entry.mv_spd);
-
     }
 
     fun create_character(
@@ -253,8 +270,9 @@ module main::character{
 
     public(friend) entry fun add_character_entry(account: &signer , name: String, 
         hp: u64, atk: u64,
-        def: u64, atk_spd: u64, mv_spd: u64) acquires CharactersInfo {
-        assert!(signer::address_of(account) == @main, ENOT_CREATOR);
+        def: u64, atk_spd: u64, mv_spd: u64) acquires CharactersInfo, SettingsData {
+        // assert!(signer::address_of(account) == @main, ENOT_ADMIN);
+        assert_is_admin(signer::address_of(account));
 
         let characters_info_table = &mut borrow_global_mut<CharactersInfo>(@main).table;
         let table_length = aptos_std::smart_table::length(characters_info_table);
@@ -273,6 +291,11 @@ module main::character{
     public fun character_id_exists(character_id: u64): bool acquires CharactersInfo {
         let characters_info_table = &borrow_global<CharactersInfo>(@main).table;
         smart_table::contains(characters_info_table, character_id)
+    }
+
+    public fun assert_is_admin(addr: address) acquires SettingsData {
+        let settings_data = borrow_global<SettingsData>(@main);
+        assert!(addr == settings_data.admin_address, ENOT_ADMIN);
     }
 
     // ANCHOR Aptos View Functions
@@ -322,7 +345,7 @@ module main::character{
     }
 
     #[test(creator = @main)]
-    public fun test_character_addition_to_table(creator: &signer) acquires CharactersInfo {
+    public fun test_character_addition_to_table(creator: &signer) acquires CharactersInfo, SettingsData {
         init_module(creator);
         add_character_entry(creator, string::utf8(b"Char1"), 100, 10, 11, 12, 50);
         add_character_entry(creator, string::utf8(b"Char2"), 110, 10, 11, 12, 50);
@@ -331,15 +354,31 @@ module main::character{
     }
 
     #[test(creator = @main, user1 = @0x456 )]
-    #[expected_failure(abort_code = ENOT_CREATOR)]
-    public fun test_add_character_by_others(creator: &signer, user1: &signer) acquires CharactersInfo {
+    #[expected_failure(abort_code = ENOT_ADMIN)]
+    public fun test_add_character_by_others(creator: &signer, user1: &signer) acquires CharactersInfo, SettingsData {
         init_module(creator);
         add_character_entry(user1, string::utf8(b"Char1"), 100, 10, 11, 12, 50);
+    }
 
+    #[test(creator = @main, user1 = @0x456 )]
+    public fun test_edit_admin(creator: &signer, user1: &signer) acquires CharactersInfo, SettingsData {
+        init_module(creator);
+        add_character_entry(creator, string::utf8(b"Char1"), 100, 10, 11, 12, 50);
+        edit_admin(creator, signer::address_of(user1));
+        add_character_entry(user1, string::utf8(b"Char2"), 100, 10, 11, 12, 50);
+    }
+
+    #[test(creator = @main, user1 = @0x456 )]
+    #[expected_failure(abort_code = ENOT_ADMIN)]
+    public fun test_edit_admin_2(creator: &signer, user1: &signer) acquires CharactersInfo, SettingsData {
+        init_module(creator);
+        add_character_entry(creator, string::utf8(b"Char1"), 100, 10, 11, 12, 50);
+        edit_admin(creator, signer::address_of(user1));
+        add_character_entry(creator, string::utf8(b"Char2"), 100, 10, 11, 12, 50);
     }
 
     #[test(creator = @main, user1 = @0x456)]
-    public fun test_mint(creator: &signer, user1: &signer) acquires CollectionCapability, CharactersInfo {
+    public fun test_mint(creator: &signer, user1: &signer) acquires CollectionCapability, CharactersInfo, SettingsData {
    
         init_module(creator);
         mint_character(user1, 0);
