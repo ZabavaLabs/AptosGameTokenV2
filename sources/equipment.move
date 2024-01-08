@@ -126,7 +126,6 @@ module main::equipment{
 
         let table_length = aptos_std::smart_table::length(&equipment_info_table);
 
-        // smart_table::add(&mut equipment_info_table, table_length, equipment_stats);
         let equipment_info = EquipmentInfo{
             table: equipment_info_table
         };
@@ -210,6 +209,7 @@ module main::equipment{
         // description: String,
         // uri: String,
         // equipment_id: u64,
+        // equipment_part_id: u64,
         // affinity_id: u64,
         // grade: u64,
         // hp:u64,
@@ -279,7 +279,7 @@ module main::equipment{
         property_map::add_typed(
             &property_mutator_ref,
             string::utf8(b"GROWTH_HP"),
-            hp
+            growth_hp
         );
         property_map::add_typed(
             &property_mutator_ref,
@@ -341,8 +341,27 @@ module main::equipment{
         // Gets `property_mutator_ref` to update the attack point in the property map.
         let property_mutator_ref = &equipment.property_mutator_ref;
         // Updates the attack point in the property map.
+        let current_lvl = property_map::read_u64(&equipment_object, &string::utf8(b"LEVEL"));
+        let current_hp = property_map::read_u64(&equipment_object, &string::utf8(b"HP"));
         let current_atk = property_map::read_u64(&equipment_object, &string::utf8(b"ATK"));
-        property_map::update_typed(property_mutator_ref, &string::utf8(b"ATK"), current_atk + (5 * amount));
+        let current_def = property_map::read_u64(&equipment_object, &string::utf8(b"DEF"));
+        let current_atk_spd = property_map::read_u64(&equipment_object, &string::utf8(b"ATK_SPD"));
+        let current_mv_spd = property_map::read_u64(&equipment_object, &string::utf8(b"MV_SPD"));
+
+        let growth_hp = property_map::read_u64(&equipment_object, &string::utf8(b"GROWTH_HP"));
+        let growth_atk = property_map::read_u64(&equipment_object, &string::utf8(b"GROWTH_ATK"));
+        let growth_def = property_map::read_u64(&equipment_object, &string::utf8(b"GROWTH_DEF"));
+        let growth_atk_spd = property_map::read_u64(&equipment_object, &string::utf8(b"GROWTH_ATK_SPD"));
+        let growth_mv_spd = property_map::read_u64(&equipment_object, &string::utf8(b"GROWTH_MV_SPD"));
+
+        property_map::update_typed(property_mutator_ref, &string::utf8(b"LEVEL"), current_lvl + (amount));
+        property_map::update_typed(property_mutator_ref, &string::utf8(b"HP"), current_hp + (amount * growth_hp));
+        property_map::update_typed(property_mutator_ref, &string::utf8(b"ATK"), current_atk + (amount * growth_atk));
+        property_map::update_typed(property_mutator_ref, &string::utf8(b"DEF"), current_def + (amount * growth_def));
+        property_map::update_typed(property_mutator_ref, &string::utf8(b"ATK_SPD"), current_atk_spd + (amount * growth_atk_spd));
+        property_map::update_typed(property_mutator_ref, &string::utf8(b"MV_SPD"), current_mv_spd + (amount * growth_mv_spd));
+
+
 
     }
     
@@ -628,7 +647,13 @@ module main::equipment{
 
         assert!(gem::gem_balance(user1_addr, gem_token) == 4, EINVALID_BALANCE);
 
+        assert!(property_map::read_u64(&char1, &string::utf8(b"LEVEL"))==7, EINVALID_PROPERTY_VALUE);
+        assert!(property_map::read_u64(&char1, &string::utf8(b"GROWTH_HP"))==10, EINVALID_PROPERTY_VALUE);
+        assert!(property_map::read_u64(&char1, &string::utf8(b"HP"))==160, EINVALID_PROPERTY_VALUE);
         assert!(property_map::read_u64(&char1, &string::utf8(b"ATK"))==40, EINVALID_PROPERTY_VALUE);
+        assert!(property_map::read_u64(&char1, &string::utf8(b"DEF"))==41, EINVALID_PROPERTY_VALUE);
+        assert!(property_map::read_u64(&char1, &string::utf8(b"ATK_SPD"))==42, EINVALID_PROPERTY_VALUE);
+        assert!(property_map::read_u64(&char1, &string::utf8(b"MV_SPD"))==80, EINVALID_PROPERTY_VALUE);
 
     }
 
@@ -650,7 +675,7 @@ module main::equipment{
             affinity_id,
             grade, level,
             100, 10, 11, 12, 50,
-            10, 5, 5, 5, 5);
+            10, 5, 6, 7, 8);
 
         let user1_addr = signer::address_of(user1);
         gem::mint_gem(user1, 20);
@@ -661,15 +686,25 @@ module main::equipment{
 
         assert!(gem::gem_balance(user1_addr, gem_token) == 20, 0);
 
-        upgrade_equipment(user1, char1, gem_token , 6);
+        upgrade_equipment(user1, char1, gem_token , 1);
 
-        assert!(gem::gem_balance(user1_addr, gem_token) == 14, EINVALID_BALANCE);
+        assert!(gem::gem_balance(user1_addr, gem_token) == 19, EINVALID_BALANCE);
 
-        assert!(property_map::read_u64(&char1, &string::utf8(b"ATK"))==40, EINVALID_PROPERTY_VALUE);
+        assert!(property_map::read_u64(&char1, &string::utf8(b"LEVEL"))==2, EINVALID_PROPERTY_VALUE);
+        assert!(property_map::read_u64(&char1, &string::utf8(b"HP"))==110, EINVALID_PROPERTY_VALUE);
+        assert!(property_map::read_u64(&char1, &string::utf8(b"ATK"))==15, EINVALID_PROPERTY_VALUE);
+        assert!(property_map::read_u64(&char1, &string::utf8(b"DEF"))==17, EINVALID_PROPERTY_VALUE);
+        assert!(property_map::read_u64(&char1, &string::utf8(b"ATK_SPD"))==19, EINVALID_PROPERTY_VALUE);
+        assert!(property_map::read_u64(&char1, &string::utf8(b"MV_SPD"))==58, EINVALID_PROPERTY_VALUE);
 
-        upgrade_equipment(user1, char1, gem_token , 5);
-        assert!(property_map::read_u64(&char1, &string::utf8(b"ATK"))==65, EINVALID_PROPERTY_VALUE);
+        upgrade_equipment(user1, char1, gem_token , 2);
 
+        assert!(property_map::read_u64(&char1, &string::utf8(b"LEVEL"))==4, EINVALID_PROPERTY_VALUE);
+        assert!(property_map::read_u64(&char1, &string::utf8(b"HP"))==130, EINVALID_PROPERTY_VALUE);
+        assert!(property_map::read_u64(&char1, &string::utf8(b"ATK"))==25, EINVALID_PROPERTY_VALUE);
+        assert!(property_map::read_u64(&char1, &string::utf8(b"DEF"))==29, EINVALID_PROPERTY_VALUE);
+        assert!(property_map::read_u64(&char1, &string::utf8(b"ATK_SPD"))==33, EINVALID_PROPERTY_VALUE);
+        assert!(property_map::read_u64(&char1, &string::utf8(b"MV_SPD"))==74, EINVALID_PROPERTY_VALUE);
 
     }
 
