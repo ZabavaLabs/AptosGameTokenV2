@@ -95,17 +95,12 @@ module main::equipment{
 
     const APP_SIGNER_CAPABILITY_SEED: vector<u8> = b"APP_SIGNER_CAPABILITY";
     const BURN_SIGNER_CAPABILITY_SEED: vector<u8> = b"BURN_SIGNER_CAPABILITY";
-    const UC_EQUIPMENT_COLLECTION_NAME: vector<u8> = b"UC Equipment Collection Name";
-    const UC_EQUIPMENT_COLLECTION_DESCRIPTION: vector<u8> = b"UC Equipment Collection Description";
-    const UC_EQUIPMENT_COLLECTION_URI: vector<u8> = b"https://aptos.dev/img/nyan.jpeg";
-    const EQUIPMENT_1_NAME: vector<u8> = b"Hydro Armor";
-    const EQUIPMENT_1_DESCRIPTION: vector<u8> = b"Hydro Armor DESC";
-    const EQUIPMENT_1_URI: vector<u8> = b"https://google.com";
-    const EQUIPMENT_2_NAME: vector<u8> = b"Pyro Sword";
-    const EQUIPMENT_2_DESCRIPTION: vector<u8> = b"Pyro Sword DESC";
-
+    const UC_EQUIPMENT_COLLECTION_NAME: vector<u8> = b"Undying City Equipment Collection";
+    const UC_EQUIPMENT_COLLECTION_DESCRIPTION: vector<u8> = b"Contains all the Undying City equipment";
     
-
+    // TODO: Change the equipment collection uri
+    const UC_EQUIPMENT_COLLECTION_URI: vector<u8> = b"https://aptos.dev/img/nyan.jpeg";
+   
     fun init_module(account: &signer) {
         let (token_resource, token_signer_cap) = account::create_resource_account(
             account,
@@ -120,25 +115,14 @@ module main::equipment{
             burn_signer_capability,
         });
 
-        create_equipment_collection(&token_resource);
+        let description = string::utf8(UC_EQUIPMENT_COLLECTION_DESCRIPTION);
+        let name = string::utf8(UC_EQUIPMENT_COLLECTION_NAME);
+        let uri = string::utf8(UC_EQUIPMENT_COLLECTION_URI);
+
+        create_equipment_collection(&token_resource, description, name, uri);
         
         let equipment_info_table = aptos_std::smart_table::new();
-        // name: String,
-        // description: String,
-        // uri: String,
-        // equipment_id: u64,
-        // affinity_id: u64,
-        // grade: u64,
-        // hp:u64,
-        // atk:u64,
-        // def:u64,
-        // atk_spd:u64,
-        // mv_spd:u64,
-        // growth_hp:u64,
-        // growth_atk:u64,
-        // growth_def:u64,
-        // growth_atk_spd:u64,
-        // growth_mv_spd:u64,
+
 
         let table_length = aptos_std::smart_table::length(&equipment_info_table);
 
@@ -166,10 +150,7 @@ module main::equipment{
         account::create_signer_with_capability(&borrow_global<CollectionCapability>(@main).capability)
     }
 
-    fun create_equipment_collection(creator: &signer) {
-        let description = string::utf8(UC_EQUIPMENT_COLLECTION_DESCRIPTION);
-        let name = string::utf8(UC_EQUIPMENT_COLLECTION_NAME);
-        let uri = string::utf8(UC_EQUIPMENT_COLLECTION_URI);
+    fun create_equipment_collection(creator: &signer, description: String, name: String, uri: String) {
 
         collection::create_unlimited_collection(
             creator,
@@ -593,8 +574,8 @@ module main::equipment{
         let user_1_address = signer::address_of(user1);
 
         let char1 = create_equipment(user1, 0,  
-            string::utf8(EQUIPMENT_1_NAME), 
-            string::utf8(EQUIPMENT_1_DESCRIPTION),
+            string::utf8(b"Equipment Name"), 
+            string::utf8(b"Equipment Description"),
             string::utf8(b"Equipment uri"),
             equipment_part_id,
             affinity_id,
@@ -625,8 +606,8 @@ module main::equipment{
         let level = 1;
 
         let char1 = create_equipment(user1, 0,  
-            string::utf8(EQUIPMENT_1_NAME), 
-            string::utf8(EQUIPMENT_1_DESCRIPTION),
+            string::utf8(b"Equipment 1 Name"), 
+            string::utf8(b"Equipment 1 Description"),
             string::utf8(b"Equipment uri"),
             equipment_part_id,
             affinity_id,
@@ -662,8 +643,8 @@ module main::equipment{
         let level = 1;
 
         let char1 = create_equipment(user1, 0,  
-            string::utf8(EQUIPMENT_1_NAME), 
-            string::utf8(EQUIPMENT_1_DESCRIPTION),
+            string::utf8(b"Equipment Name"), 
+            string::utf8(b"Equipment 1 Description"),
             string::utf8(b"Equipment uri"),
             equipment_part_id,
             affinity_id,
@@ -705,9 +686,9 @@ module main::equipment{
         let level = 1;
 
         let char1 = create_equipment(user1, 0,  
-            string::utf8(EQUIPMENT_1_NAME), 
-            string::utf8(EQUIPMENT_1_DESCRIPTION),
-            string::utf8(b"Equipment uri"),
+            string::utf8(b"Equipment Name"), 
+            string::utf8(b"Equipment Description"),
+            string::utf8(b"Equipment Uri"),
             equipment_part_id,
             affinity_id,
             grade, level,
