@@ -38,25 +38,25 @@ module main::equipment{
     }
 
 
-    struct Equipment has key {
-        name: String,
-        description: String,
-        uri: String,
-        equipment_id: u64,
-        equipment_part_id: u64,
-        affinity_id: u64,
-        grade:u64,
-        level: u64,
-        hp:u64,
-        atk:u64,
-        def:u64,
-        atk_spd:u64,
-        mv_spd:u64,
-        growth_hp:u64,
-        growth_atk:u64,
-        growth_def:u64,
-        growth_atk_spd:u64,
-        growth_mv_spd:u64,
+    struct EquipmentCapability has key {
+        // name: String,
+        // description: String,
+        // uri: String,
+        // equipment_id: u64,
+        // equipment_part_id: u64,
+        // affinity_id: u64,
+        // grade:u64,
+        // level: u64,
+        // hp:u64,
+        // atk:u64,
+        // def:u64,
+        // atk_spd:u64,
+        // mv_spd:u64,
+        // growth_hp:u64,
+        // growth_atk:u64,
+        // growth_def:u64,
+        // growth_atk_spd:u64,
+        // growth_mv_spd:u64,
         mutator_ref: token::MutatorRef,
         burn_ref: token::BurnRef,
         property_mutator_ref: property_map::MutatorRef,
@@ -188,7 +188,7 @@ module main::equipment{
         atk_spd: u64, mv_spd: u64,
         growth_hp: u64, growth_atk: u64, growth_def: u64,
         growth_atk_spd: u64, growth_mv_spd: u64
-    ): Object<Equipment> acquires CollectionCapability {
+    ): Object<EquipmentCapability> acquires CollectionCapability {
 
         let constructor_ref = token::create_from_account(
             &get_token_signer(),
@@ -303,25 +303,25 @@ module main::equipment{
             growth_mv_spd
         );
 
-        let new_equipment = Equipment {
-            name: token_name,
-            description: token_description,
-            uri: token_uri,
-            equipment_id,
-            equipment_part_id,
-            affinity_id,
-            grade,
-            level,
-            hp: hp,
-            atk: atk,
-            def: def,
-            atk_spd: atk_spd,
-            mv_spd: mv_spd,
-            growth_hp,
-            growth_atk,
-            growth_def,
-            growth_atk_spd,
-            growth_mv_spd,
+        let new_equipment = EquipmentCapability {
+            // name: token_name,
+            // description: token_description,
+            // uri: token_uri,
+            // equipment_id,
+            // equipment_part_id,
+            // affinity_id,
+            // grade,
+            // level,
+            // hp: hp,
+            // atk: atk,
+            // def: def,
+            // atk_spd: atk_spd,
+            // mv_spd: mv_spd,
+            // growth_hp,
+            // growth_atk,
+            // growth_def,
+            // growth_atk_spd,
+            // growth_mv_spd,
             mutator_ref,
             burn_ref,
             property_mutator_ref
@@ -333,11 +333,11 @@ module main::equipment{
         object::address_to_object(signer::address_of(&token_signer))
     }
 
-    entry fun upgrade_equipment(from: &signer, equipment_object: Object<Equipment>, gem_object: Object<GemToken>, amount: u64) acquires Equipment {
+    public entry fun upgrade_equipment(from: &signer, equipment_object: Object<EquipmentCapability>, gem_object: Object<GemToken>, amount: u64) acquires EquipmentCapability {
         assert!(object::is_owner(equipment_object, signer::address_of(from)), ENOT_OWNER);
         gem::burn_gem(from, gem_object, amount);
         let equipment_token_address = object::object_address(&equipment_object);
-        let equipment = borrow_global_mut<Equipment>(equipment_token_address);
+        let equipment = borrow_global_mut<EquipmentCapability>(equipment_token_address);
         // Gets `property_mutator_ref` to update the attack point in the property map.
         let property_mutator_ref = &equipment.property_mutator_ref;
         // Updates the attack point in the property map.
@@ -615,7 +615,7 @@ module main::equipment{
     }
 
     #[test(creator = @main, user1 = @0x456)]
-    public fun test_upgrade_equipment(creator: &signer, user1: &signer) acquires CollectionCapability, Equipment {
+    public fun test_upgrade_equipment(creator: &signer, user1: &signer) acquires CollectionCapability, EquipmentCapability {
    
         init_module(creator);
         gem::init_module_for_test(creator);
@@ -657,8 +657,8 @@ module main::equipment{
 
     }
 
-        #[test(creator = @main, user1 = @0x456)]
-    public fun test_upgrade_equipment_multiple(creator: &signer, user1: &signer) acquires CollectionCapability, Equipment {
+    #[test(creator = @main, user1 = @0x456)]
+    public fun test_upgrade_equipment_multiple(creator: &signer, user1: &signer) acquires CollectionCapability, EquipmentCapability {
    
         init_module(creator);
         gem::init_module_for_test(creator);
@@ -711,7 +711,7 @@ module main::equipment{
 
     #[test(creator = @main, user1 = @0x456, user2 = @0x789)]
     #[expected_failure(abort_code=ENOT_OWNER)]
-    public fun test_upgrade_equipment_wrong_ownership(creator: &signer, user1: &signer, user2: &signer) acquires CollectionCapability, Equipment {
+    public fun test_upgrade_equipment_wrong_ownership(creator: &signer, user1: &signer, user2: &signer) acquires CollectionCapability, EquipmentCapability {
    
         init_module(creator);
         gem::init_module_for_test(creator);
