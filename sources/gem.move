@@ -13,6 +13,7 @@ module main::gem {
     use std::string::{Self, String};
 
     friend main::character;
+    friend main::equipment;
 
     /// The token does not exist
     const ETOKEN_DOES_NOT_EXIST: u64 = 1;
@@ -26,6 +27,9 @@ module main::gem {
     const EPROPERTIES_NOT_MUTABLE: u64 = 5;
     // The collection does not exist
     const ECOLLECTION_DOES_NOT_EXIST: u64 = 6;
+    // The caller is not the admin
+    const ENOT_ADMIN: u64 = 7;
+
 
     /// The gem collection name
     const GEM_COLLECTION_NAME: vector<u8> = b"Gem Collection Name";
@@ -48,14 +52,21 @@ module main::gem {
         fungible_asset_burn_ref: fungible_asset::BurnRef,
     }
 
+    // TODO: Possible to combine the AdminData with character?
 
-    /// Initializes the module, creating the gem collection and creating two fungible tokens such as Corn, and Meat.
-    fun init_module(sender: &signer) {
+    struct AdminData has key {
+        admin_address: address,
+        company_revenue_address: address,
+        buy_back_address: address
+    }
+
+    /// Initializes the module, creating the gem collection.
+    fun init_module(caller: &signer) {
         // Create a collection for gem tokens.
-        create_gem_collection(sender);
+        create_gem_collection(caller);
 
         create_gem_token_as_fungible_token(
-            sender,
+            caller,
             string::utf8(b"Gem Token Description"),
             string::utf8(GEM_TOKEN_NAME),
             string::utf8(b"https://raw.githubusercontent.com/aptos-labs/aptos-core/main/ecosystem/typescript/sdk/examples/typescript/metadata/knight/Corn"),
@@ -64,8 +75,22 @@ module main::gem {
             string::utf8(b"https://raw.githubusercontent.com/aptos-labs/aptos-core/main/ecosystem/typescript/sdk/examples/typescript/metadata/knight/Corn.png"),
             string::utf8(b"https://www.aptoslabs.com"),
         );
+
+        let settings = AdminData{
+            admin_address: signer::address_of(caller),
+            company_revenue_address: signer::address_of(caller),
+            buy_back_address: signer::address_of(caller)
+        };
+
+        move_to(caller, settings);
     }
 
+    public entry fun edit_admin(caller: &signer, new_admin_addr: address) acquires AdminData {
+        let caller_address = signer::address_of(caller);
+        assert_is_admin(caller_address);
+        let settings_data = borrow_global_mut<AdminData>(@main);
+        settings_data.admin_address = new_admin_addr;
+    }
  
 
     #[view]
@@ -88,6 +113,12 @@ module main::gem {
         token::create_token_address(&@main, &string::utf8(GEM_COLLECTION_NAME), &gem_token_name)
     }
 
+
+    fun assert_is_admin(addr: address) acquires AdminData {
+        let settings_data = borrow_global<AdminData>(@main);
+        assert!(addr == settings_data.admin_address, ENOT_ADMIN);
+    }
+
     /// Mints the given amount of the gem token to the given receiver.
     // TODO: Exchange stablecoins for gems when minting to make users pay for gems.
     public entry fun mint_gem( caller: &signer, amount: u64) acquires GemToken {
@@ -102,7 +133,7 @@ module main::gem {
     }
 
 
-    public entry fun transfer_gem_object(from: &signer, gem: Object<GemToken>, to: address, amount: u64) {
+    inline fun transfer_gem_object(from: &signer, gem: Object<GemToken>, to: address, amount: u64) {
         let metadata = object::convert<GemToken, Metadata>(gem);
         primary_fungible_store::transfer(from, metadata, to, amount);
     }
@@ -155,8 +186,7 @@ module main::gem {
             uri,
         );
 
-        // Generates the object signer and the refs. The object signer is used to publish a resource
-        // (e.g., RestorationValue) under the token object address. The refs are used to manage the token.
+        // Generates the object signer and the refs. The refs are used to manage the token.
         let object_signer = object::generate_signer(&constructor_ref);
         let property_mutator_ref = property_map::generate_mutator_ref(&constructor_ref);
 

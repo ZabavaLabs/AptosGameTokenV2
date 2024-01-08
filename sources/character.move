@@ -20,6 +20,7 @@ module main::character{
     use aptos_std::string_utils::{to_string};
 
     use main::gem::{Self, GemToken};
+
     // use std::debug::print;
     // use std::vector;
 
@@ -32,7 +33,7 @@ module main::character{
     const EINSUFFICIENT_BALANCE: u64 = 65540;
     
 
-    struct SettingsData has key {
+    struct AdminData has key {
         admin_address: address
     }
 
@@ -117,17 +118,17 @@ module main::character{
         };
         move_to(account, characters_info);
 
-        let settings = SettingsData{
+        let settings = AdminData{
             admin_address: signer::address_of(account)
         };
 
         move_to(account, settings);
     }
 
-    public entry fun edit_admin(caller: &signer, new_admin_addr: address) acquires SettingsData {
+    public entry fun edit_admin(caller: &signer, new_admin_addr: address) acquires AdminData {
         let caller_address = signer::address_of(caller);
         assert_is_admin(caller_address);
-        let settings_data = borrow_global_mut<SettingsData>(@main);
+        let settings_data = borrow_global_mut<AdminData>(@main);
         settings_data.admin_address = new_admin_addr;
     }
 
@@ -240,38 +241,13 @@ module main::character{
         property_map::update_typed(property_mutator_ref, &string::utf8(b"ATK"), current_atk + (5 * amount));
 
     }
-
-    inline fun get_character_internal(creator_addr: &address): (&Character) acquires Character {
-        let collection = string::utf8(UC_CHARACTER_COLLECTION_NAME);
-        let token_name = to_string(creator_addr);
-        let creator = &get_token_signer();
-        let token_address = token::create_token_address(
-            &signer::address_of(creator),
-            &collection,
-            &token_name,
-        );
-        (borrow_global<Character>(token_address))
-    }
-
-    inline fun get_character_internal_mut(creator_addr: &address): (&mut Character) acquires Character {
-        let collection = string::utf8(UC_CHARACTER_COLLECTION_NAME);
-        let token_name = to_string(creator_addr);
-        let creator = &get_token_signer();
-        let token_address = token::create_token_address(
-            &signer::address_of(creator),
-            &collection,
-            &token_name,
-        );
-        (borrow_global_mut<Character>(token_address))
-    }
     
-
     // ANCHOR Aptos Utility Functions
 
     public(friend) entry fun add_character_entry(account: &signer , name: String, 
         hp: u64, atk: u64,
-        def: u64, atk_spd: u64, mv_spd: u64) acquires CharactersInfo, SettingsData {
-        // assert!(signer::address_of(account) == @main, ENOT_ADMIN);
+        def: u64, atk_spd: u64, mv_spd: u64) acquires CharactersInfo, AdminData {
+
         assert_is_admin(signer::address_of(account));
 
         let characters_info_table = &mut borrow_global_mut<CharactersInfo>(@main).table;
@@ -293,9 +269,10 @@ module main::character{
         smart_table::contains(characters_info_table, character_id)
     }
 
-    public fun assert_is_admin(addr: address) acquires SettingsData {
-        let settings_data = borrow_global<SettingsData>(@main);
+    fun assert_is_admin(addr: address) acquires AdminData {
+        let settings_data = borrow_global<AdminData>(@main);
         assert!(addr == settings_data.admin_address, ENOT_ADMIN);
+        // assert!(addr == main::admin::get_admin_address(), ENOT_ADMIN);
     }
 
     // ANCHOR Aptos View Functions
@@ -312,24 +289,9 @@ module main::character{
         aptos_std::smart_table::length(characters_info_table)
     }
 
+   
 
-    // #[view]
-    // public fun get_character_stats(char: Object<Character>): (String, u64, u64, u64, u64, u64) acquires Character, CollectionCapability {
-    //     let collection = string::utf8(UC_CHARACTER_COLLECTION_NAME);
-    //     let token_name = to_string(&user_addr);
-    //     let token_address = token::create_token_address(
-    //         &user_addr,
-    //         &collection,
-    //         &token_name,
-    //     );
-    //     let has_char = exists<Character>(token_address);
 
-    //     if (!has_char) {
-    //         return (string::utf8(b""), 0, 0, 0, 0, 0)
-    //     };
-    //     let char = get_character_internal(&user_addr);
-    //     (char.name, char.hp, char.def, char.atk, char.atk_spd, char.mv_spd)
-    // }
 
  
 
@@ -345,7 +307,7 @@ module main::character{
     }
 
     #[test(creator = @main)]
-    public fun test_character_addition_to_table(creator: &signer) acquires CharactersInfo, SettingsData {
+    public fun test_character_addition_to_table(creator: &signer) acquires CharactersInfo, AdminData {
         init_module(creator);
         add_character_entry(creator, string::utf8(b"Char1"), 100, 10, 11, 12, 50);
         add_character_entry(creator, string::utf8(b"Char2"), 110, 10, 11, 12, 50);
@@ -355,13 +317,13 @@ module main::character{
 
     #[test(creator = @main, user1 = @0x456 )]
     #[expected_failure(abort_code = ENOT_ADMIN)]
-    public fun test_add_character_by_others(creator: &signer, user1: &signer) acquires CharactersInfo, SettingsData {
+    public fun test_add_character_by_others(creator: &signer, user1: &signer) acquires CharactersInfo, AdminData {
         init_module(creator);
         add_character_entry(user1, string::utf8(b"Char1"), 100, 10, 11, 12, 50);
     }
 
     #[test(creator = @main, user1 = @0x456 )]
-    public fun test_edit_admin(creator: &signer, user1: &signer) acquires CharactersInfo, SettingsData {
+    public fun test_edit_admin(creator: &signer, user1: &signer) acquires CharactersInfo, AdminData {
         init_module(creator);
         add_character_entry(creator, string::utf8(b"Char1"), 100, 10, 11, 12, 50);
         edit_admin(creator, signer::address_of(user1));
@@ -370,7 +332,7 @@ module main::character{
 
     #[test(creator = @main, user1 = @0x456 )]
     #[expected_failure(abort_code = ENOT_ADMIN)]
-    public fun test_edit_admin_2(creator: &signer, user1: &signer) acquires CharactersInfo, SettingsData {
+    public fun test_edit_admin_2(creator: &signer, user1: &signer) acquires CharactersInfo, AdminData {
         init_module(creator);
         add_character_entry(creator, string::utf8(b"Char1"), 100, 10, 11, 12, 50);
         edit_admin(creator, signer::address_of(user1));
@@ -378,7 +340,7 @@ module main::character{
     }
 
     #[test(creator = @main, user1 = @0x456)]
-    public fun test_mint(creator: &signer, user1: &signer) acquires CollectionCapability, CharactersInfo, SettingsData {
+    public fun test_mint(creator: &signer, user1: &signer) acquires CollectionCapability, CharactersInfo, AdminData {
    
         init_module(creator);
         mint_character(user1, 0);
