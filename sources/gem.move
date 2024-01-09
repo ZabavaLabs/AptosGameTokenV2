@@ -30,6 +30,9 @@ module main::gem {
     // The collection does not exist
     const ECOLLECTION_DOES_NOT_EXIST: u64 = 6;
 
+    const EINVALID_BALANCE: u64 = 7;
+
+
     // The caller is not the admin
     const ENOT_ADMIN: u64 = 7;
     // The minimum mintable amount requirement is not met.
@@ -59,7 +62,6 @@ module main::gem {
         fungible_asset_burn_ref: fungible_asset::BurnRef,
     }
 
-    // TODO: Possible to combine the AdminData with character?
 
     struct AdminData has key {
         admin_address: address,
@@ -102,6 +104,20 @@ module main::gem {
         assert_is_admin(caller_address);
         let settings_data = borrow_global_mut<AdminData>(@main);
         settings_data.admin_address = new_admin_addr;
+    }
+
+    public entry fun edit_company_revenue_address(caller: &signer, new_addr: address) acquires AdminData {
+        let caller_address = signer::address_of(caller);
+        assert_is_admin(caller_address);
+        let settings_data = borrow_global_mut<AdminData>(@main);
+        settings_data.company_revenue_address = new_addr;
+    }
+    
+    public entry fun edit_buy_back_address(caller: &signer, new_addr: address) acquires AdminData {
+        let caller_address = signer::address_of(caller);
+        assert_is_admin(caller_address);
+        let settings_data = borrow_global_mut<AdminData>(@main);
+        settings_data.buy_back_address = new_addr;
     }
  
 
@@ -304,6 +320,32 @@ module main::gem {
 
         let gem_token = object::address_to_object<GemToken>(gem_token_address());
         assert!(gem_balance(user2_addr, gem_token) == 50, 0);
+    }
+
+
+    #[test(creator = @main, user1 = @0x456, user2 = @0x789, aptos_framework = @aptos_framework)]
+    public fun test_gem_sent_correctly(creator: &signer, user1: &signer, user2: &signer, aptos_framework: &signer) acquires GemToken, AdminData {
+        init_module(creator);
+        setup_coin(creator, user1, user2, aptos_framework);
+
+        let creator_addr = signer::address_of(creator);
+        let user1_addr = signer::address_of(user1);
+        let user2_addr = signer::address_of(user2);
+
+        mint_gem(user2, 50);
+        assert!(coin::balance<AptosCoin>(signer::address_of(user2)) == 50_000_000, EINVALID_BALANCE);
+        assert!(coin::balance<AptosCoin>(creator_addr) == 150_000_000, EINVALID_BALANCE);
+
+        edit_buy_back_address(creator, user1_addr);
+        mint_gem(user2, 10);
+        assert!(coin::balance<AptosCoin>(user1_addr) == 105_000_000, EINVALID_BALANCE);
+        assert!(coin::balance<AptosCoin>(creator_addr) == 155_000_000, EINVALID_BALANCE);
+
+        edit_company_revenue_address(creator, user2_addr);
+        mint_gem(user2, 10);
+        assert!(coin::balance<AptosCoin>(user1_addr) == 110_000_000, EINVALID_BALANCE);
+        assert!(coin::balance<AptosCoin>(creator_addr) == 155_000_000, EINVALID_BALANCE);
+        assert!(coin::balance<AptosCoin>(user2_addr) == 35_000_000, EINVALID_BALANCE);
 
     }
 
