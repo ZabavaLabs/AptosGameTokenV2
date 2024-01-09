@@ -4,6 +4,7 @@ version = "1.0.0"
 
 [addresses]
 main = "91cfd8fbc55be87ff4c6ed43d2261eea493337000efcbe096828cd03c200c1a0"
+aptos_framework = "0x1"
 
 [dependencies.AptosFramework]
 git = "https://github.com/aptos-labs/aptos-core.git"

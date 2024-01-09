@@ -3,6 +3,8 @@
 module main::gem {
     use aptos_framework::fungible_asset::{Self, Metadata};
     use aptos_framework::object::{Self, Object};
+    use aptos_framework::aptos_coin::AptosCoin;
+    use aptos_framework::coin;
     use aptos_framework::primary_fungible_store;
     use aptos_token_objects::collection;
     use aptos_token_objects::property_map;
@@ -12,7 +14,7 @@ module main::gem {
     use std::signer;
     use std::string::{Self, String};
 
-    friend main::character;
+    // friend main::character;
     friend main::equipment;
 
     /// The token does not exist
@@ -27,19 +29,24 @@ module main::gem {
     const EPROPERTIES_NOT_MUTABLE: u64 = 5;
     // The collection does not exist
     const ECOLLECTION_DOES_NOT_EXIST: u64 = 6;
+
     // The caller is not the admin
     const ENOT_ADMIN: u64 = 7;
+    // The minimum mintable amount requirement is not met.
+    const ENOT_MINIMUM_MINT_AMOUNT: u64 = 8;
 
+    const ENOT_EVEN: u64 = 9;
 
     /// The gem collection name
-    const GEM_COLLECTION_NAME: vector<u8> = b"Gem Collection Name";
+    const GEM_COLLECTION_NAME: vector<u8> = b"Undying City Gem Collection";
     /// The gem collection description
-    const GEM_COLLECTION_DESCRIPTION: vector<u8> = b"Gem Collection Description";
+    const GEM_COLLECTION_DESCRIPTION: vector<u8> = b"The in game currency for undying city.";
     /// The gem collection URI
     const GEM_COLLECTION_URI: vector<u8> = b"https://gem.collection.uri";
 
 
-    const GEM_TOKEN_NAME: vector<u8> = b"Gem Token";
+    const GEM_TOKEN_NAME: vector<u8> = b"Undying City Gem";
+
 
     #[resource_group_member(group = aptos_framework::object::ObjectGroup)]
     // Gem Token
@@ -57,7 +64,10 @@ module main::gem {
     struct AdminData has key {
         admin_address: address,
         company_revenue_address: address,
-        buy_back_address: address
+        buy_back_address: address,
+        minimum_gem_mint_amount: u64,
+        apt_cost_per_gem: u64
+
     }
 
     /// Initializes the module, creating the gem collection.
@@ -79,7 +89,9 @@ module main::gem {
         let settings = AdminData{
             admin_address: signer::address_of(caller),
             company_revenue_address: signer::address_of(caller),
-            buy_back_address: signer::address_of(caller)
+            buy_back_address: signer::address_of(caller),
+            minimum_gem_mint_amount: 10,
+            apt_cost_per_gem: 1_000_000
         };
 
         move_to(caller, settings);
@@ -121,7 +133,14 @@ module main::gem {
 
     /// Mints the given amount of the gem token to the given receiver.
     // TODO: Exchange stablecoins for gems when minting to make users pay for gems.
-    public entry fun mint_gem( caller: &signer, amount: u64) acquires GemToken {
+    public entry fun mint_gem( caller: &signer, amount: u64) acquires GemToken, AdminData {
+        let admin_data = borrow_global<AdminData>(@main);
+        assert!(amount >= admin_data.minimum_gem_mint_amount, ENOT_MINIMUM_MINT_AMOUNT);
+        assert!(amount % 2 == 0, ENOT_EVEN);
+
+        coin::transfer<AptosCoin>(caller, admin_data.company_revenue_address, amount/2 * admin_data.apt_cost_per_gem);
+        coin::transfer<AptosCoin>(caller, admin_data.buy_back_address, amount/2 * admin_data.apt_cost_per_gem);
+
         let gem_token = object::address_to_object<GemToken>(gem_token_address());
         mint_internal( gem_token, signer::address_of(caller), amount);
     }
@@ -237,11 +256,32 @@ module main::gem {
         init_module(creator);
     }
 
-    #[test(creator = @main, user1 = @0x456, user2 = @0x789)]
-    public fun test_gem(creator: &signer, user1: &signer, user2: &signer) acquires GemToken {
+    #[test_only]
+    public fun setup_coin(creator:&signer, user1:&signer, user2:&signer, aptos_framework: &signer){
+        use aptos_framework::account::create_account_for_test;
+        create_account_for_test(signer::address_of(creator));
+        create_account_for_test(signer::address_of(user1));
+        create_account_for_test(signer::address_of(user2));
+
+        let (burn_cap, mint_cap) = aptos_framework::aptos_coin::initialize_for_test(aptos_framework);
+        coin::register<AptosCoin>(creator);
+        coin::register<AptosCoin>(user1);
+        coin::register<AptosCoin>(user2);
+        coin::deposit(signer::address_of(creator), coin::mint(100_000_000, &mint_cap));
+        coin::deposit(signer::address_of(user1), coin::mint(100_000_000, &mint_cap));
+        coin::deposit(signer::address_of(user2), coin::mint(100_000_000, &mint_cap));
+
+        coin::destroy_burn_cap(burn_cap);
+        coin::destroy_mint_cap(mint_cap);
+
+    }
+
+    #[test(creator = @main, user1 = @0x456, user2 = @0x789, aptos_framework = @aptos_framework)]
+    public fun test_gem(creator: &signer, user1: &signer, user2: &signer, aptos_framework: &signer) acquires GemToken, AdminData {
         assert!(signer::address_of(creator) == @main, 0);
 
         init_module(creator);
+        setup_coin(creator, user1, user2, aptos_framework);
 
         let user1_addr = signer::address_of(user1);
         mint_gem(user1, 50);
@@ -252,9 +292,10 @@ module main::gem {
 
     }
     
-    #[test(creator = @main, user1 = @0x456, user2 = @0x789)]
-    public fun test_gem_mint(creator: &signer, user1: &signer, user2: &signer) acquires GemToken {
+    #[test(creator = @main, user1 = @0x456, user2 = @0x789, aptos_framework = @aptos_framework)]
+    public fun test_gem_mint(creator: &signer, user1: &signer, user2: &signer, aptos_framework: &signer) acquires GemToken, AdminData {
         init_module(creator);
+        setup_coin(creator, user1, user2, aptos_framework);
 
         let user1_addr = signer::address_of(user1);
         let user2_addr = signer::address_of(user2);
@@ -263,6 +304,22 @@ module main::gem {
 
         let gem_token = object::address_to_object<GemToken>(gem_token_address());
         assert!(gem_balance(user2_addr, gem_token) == 50, 0);
+
+    }
+
+    #[test(creator = @main, user1 = @0x456, user2 = @0x789, aptos_framework = @aptos_framework)]
+    #[expected_failure(abort_code = ENOT_MINIMUM_MINT_AMOUNT )]
+    public fun test_gem_mint_below_min(creator: &signer, user1: &signer, user2: &signer, aptos_framework: &signer) acquires GemToken, AdminData {
+        init_module(creator);
+        setup_coin(creator, user1, user2, aptos_framework);
+
+        let user1_addr = signer::address_of(user1);
+        let user2_addr = signer::address_of(user2);
+
+        mint_gem(user2, 8);
+
+        let gem_token = object::address_to_object<GemToken>(gem_token_address());
+        assert!(gem_balance(user2_addr, gem_token) == 8, 0);
 
     }
 }

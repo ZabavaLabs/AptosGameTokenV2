@@ -614,10 +614,11 @@ module main::equipment{
         mint_equipment(user1, 1);
     }
 
-    #[test(creator = @main, user1 = @0x456)]
-    public fun test_upgrade_equipment(creator: &signer, user1: &signer) acquires CollectionCapability, EquipmentCapability {
+    #[test(creator = @main, user1 = @0x456, user2 = @0x789, aptos_framework = @aptos_framework)]
+    public fun test_upgrade_equipment(creator: &signer, user1: &signer, user2: &signer, aptos_framework: &signer) acquires CollectionCapability, EquipmentCapability {
    
         init_module(creator);
+        gem::setup_coin(creator, user1, user2, aptos_framework);
         gem::init_module_for_test(creator);
         let equipment_part_id = 1;
         let affinity_id = 1;
@@ -657,10 +658,11 @@ module main::equipment{
 
     }
 
-    #[test(creator = @main, user1 = @0x456)]
-    public fun test_upgrade_equipment_multiple(creator: &signer, user1: &signer) acquires CollectionCapability, EquipmentCapability {
+    #[test(creator = @main, user1 = @0x456, user2 = @0x789, aptos_framework = @aptos_framework)]
+    public fun test_upgrade_equipment_multiple(creator: &signer, user1: &signer, user2: &signer, aptos_framework: &signer) acquires CollectionCapability, EquipmentCapability {
    
         init_module(creator);
+        gem::setup_coin(creator, user1, user2, aptos_framework);
         gem::init_module_for_test(creator);
         let equipment_part_id = 1;
         let affinity_id = 1;
@@ -709,11 +711,12 @@ module main::equipment{
     }
 
 
-    #[test(creator = @main, user1 = @0x456, user2 = @0x789)]
+    #[test(creator = @main, user1 = @0x456, user2 = @0x789, aptos_framework = @aptos_framework)]
     #[expected_failure(abort_code=ENOT_OWNER)]
-    public fun test_upgrade_equipment_wrong_ownership(creator: &signer, user1: &signer, user2: &signer) acquires CollectionCapability, EquipmentCapability {
+    public fun test_upgrade_equipment_wrong_ownership(creator: &signer, user1: &signer, user2: &signer, aptos_framework: &signer) acquires CollectionCapability, EquipmentCapability {
    
         init_module(creator);
+        gem::setup_coin(creator, user1, user2, aptos_framework);
         gem::init_module_for_test(creator);
         let equipment_part_id = 1;
         let affinity_id = 1;
