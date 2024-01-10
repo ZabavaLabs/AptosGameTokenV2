@@ -9,8 +9,8 @@ module main::equipment{
     use aptos_token_objects::token::{Self, Token};
     use aptos_token_objects::property_map;
 
-    use aptos_framework::fungible_asset::{Self, Metadata};
-    use aptos_framework::primary_fungible_store;
+    // use aptos_framework::fungible_asset::{Self, Metadata};
+    // use aptos_framework::primary_fungible_store;
 
     use std::error;
     use std::option;
@@ -30,6 +30,7 @@ module main::equipment{
     const EINVALID_TABLE_LENGTH: u64 = 4;
     const EINVALID_PROPERTY_VALUE: u64 = 5;
     const EINVALID_BALANCE: u64 = 6;
+    const EMAX_LEVEL: u64 = 7;
     const EINSUFFICIENT_BALANCE: u64 = 65540;
     
 
@@ -37,6 +38,9 @@ module main::equipment{
         admin_address: address
     }
 
+    struct GameData has key {
+        max_equipment_level: u64
+    }
 
     struct EquipmentCapability has key {
         // name: String,
@@ -136,6 +140,12 @@ module main::equipment{
         };
 
         move_to(account, settings);
+
+        let gameData = GameData{
+            max_equipment_level: 50
+        };
+
+        move_to(account, gameData);
     }
 
     public entry fun edit_admin(caller: &signer, new_admin_addr: address) acquires AdminData {
@@ -143,6 +153,13 @@ module main::equipment{
         assert_is_admin(caller_address);
         let settings_data = borrow_global_mut<AdminData>(@main);
         settings_data.admin_address = new_admin_addr;
+    }
+
+    public entry fun edit_max_weapon_level(caller: &signer, new_max_level: u64) acquires GameData, AdminData {
+        let caller_address = signer::address_of(caller);
+        assert_is_admin(caller_address);
+        let game_data = borrow_global_mut<GameData>(@main);
+        game_data.max_equipment_level = new_max_level;
     }
 
     fun get_token_signer(): signer acquires CollectionCapability {
@@ -332,8 +349,8 @@ module main::equipment{
         object::transfer(&get_token_signer() , created_token, signer::address_of(user));
         object::address_to_object(signer::address_of(&token_signer))
     }
-
-    public entry fun upgrade_equipment(from: &signer, equipment_object: Object<EquipmentCapability>, gem_object: Object<GemToken>, amount: u64) acquires EquipmentCapability {
+   
+    public entry fun upgrade_equipment(from: &signer, equipment_object: Object<EquipmentCapability>, gem_object: Object<GemToken>, amount: u64) acquires EquipmentCapability, GameData {
         assert!(object::is_owner(equipment_object, signer::address_of(from)), ENOT_OWNER);
         gem::burn_gem(from, gem_object, amount);
         let equipment_token_address = object::object_address(&equipment_object);
@@ -342,6 +359,11 @@ module main::equipment{
         let property_mutator_ref = &equipment.property_mutator_ref;
         // Updates the attack point in the property map.
         let current_lvl = property_map::read_u64(&equipment_object, &string::utf8(b"LEVEL"));
+
+        // Prevents upgrading beyond a certain level.
+        let game_data = borrow_global<GameData>(@main);
+        assert!( current_lvl + amount <= game_data.max_equipment_level, EMAX_LEVEL);
+
         let current_hp = property_map::read_u64(&equipment_object, &string::utf8(b"HP"));
         let current_atk = property_map::read_u64(&equipment_object, &string::utf8(b"ATK"));
         let current_def = property_map::read_u64(&equipment_object, &string::utf8(b"DEF"));
@@ -615,7 +637,7 @@ module main::equipment{
     }
 
     #[test(creator = @main, user1 = @0x456, user2 = @0x789, aptos_framework = @aptos_framework)]
-    public fun test_upgrade_equipment(creator: &signer, user1: &signer, user2: &signer, aptos_framework: &signer) acquires CollectionCapability, EquipmentCapability {
+    public fun test_upgrade_equipment(creator: &signer, user1: &signer, user2: &signer, aptos_framework: &signer) acquires CollectionCapability, EquipmentCapability, GameData {
    
         init_module(creator);
         gem::setup_coin(creator, user1, user2, aptos_framework);
@@ -659,7 +681,7 @@ module main::equipment{
     }
 
     #[test(creator = @main, user1 = @0x456, user2 = @0x789, aptos_framework = @aptos_framework)]
-    public fun test_upgrade_equipment_multiple(creator: &signer, user1: &signer, user2: &signer, aptos_framework: &signer) acquires CollectionCapability, EquipmentCapability {
+    public fun test_upgrade_equipment_multiple(creator: &signer, user1: &signer, user2: &signer, aptos_framework: &signer) acquires CollectionCapability, EquipmentCapability, GameData {
    
         init_module(creator);
         gem::setup_coin(creator, user1, user2, aptos_framework);
@@ -713,7 +735,7 @@ module main::equipment{
 
     #[test(creator = @main, user1 = @0x456, user2 = @0x789, aptos_framework = @aptos_framework)]
     #[expected_failure(abort_code=ENOT_OWNER)]
-    public fun test_upgrade_equipment_wrong_ownership(creator: &signer, user1: &signer, user2: &signer, aptos_framework: &signer) acquires CollectionCapability, EquipmentCapability {
+    public fun test_upgrade_equipment_wrong_ownership(creator: &signer, user1: &signer, user2: &signer, aptos_framework: &signer) acquires CollectionCapability, EquipmentCapability, GameData {
    
         init_module(creator);
         gem::setup_coin(creator, user1, user2, aptos_framework);
@@ -741,5 +763,97 @@ module main::equipment{
 
         upgrade_equipment(user2, char1, gem_token , 1);
 
+    }
+
+    #[test(creator = @main, user1 = @0x456, user2 = @0x789, aptos_framework = @aptos_framework)]
+    public fun test_upgrade_equipment_to_max_level(creator: &signer, user1: &signer, user2: &signer, aptos_framework: &signer) acquires CollectionCapability, EquipmentCapability, GameData {
+   
+        init_module(creator);
+        gem::setup_coin(creator, user1, user2, aptos_framework);
+        gem::init_module_for_test(creator);
+        let equipment_part_id = 1;
+        let affinity_id = 1;
+        let grade = 1;
+        let level = 1;
+
+        let char1 = create_equipment(user1, 0,  
+            string::utf8(b"Equipment Name"), 
+            string::utf8(b"Equipment Description"),
+            string::utf8(b"Equipment Uri"),
+            equipment_part_id,
+            affinity_id,
+            grade, level,
+            100, 10, 11, 12, 50,
+            10, 5, 5, 5, 5);
+
+        let user1_addr = signer::address_of(user1);
+        gem::mint_gem(user1, 100);
+
+        let gem_token = object::address_to_object<GemToken>(gem::gem_token_address());
+        let gem_balance = gem::gem_balance(user1_addr, gem_token);
+
+        upgrade_equipment(user1, char1, gem_token , 49);
+    }
+
+    #[test(creator = @main, user1 = @0x456, user2 = @0x789, aptos_framework = @aptos_framework)]
+    #[expected_failure(abort_code=EMAX_LEVEL)]
+    public fun test_upgrade_equipment_past_max_level(creator: &signer, user1: &signer, user2: &signer, aptos_framework: &signer) acquires CollectionCapability, EquipmentCapability, GameData {
+   
+        init_module(creator);
+        gem::setup_coin(creator, user1, user2, aptos_framework);
+        gem::init_module_for_test(creator);
+        let equipment_part_id = 1;
+        let affinity_id = 1;
+        let grade = 1;
+        let level = 1;
+
+        let char1 = create_equipment(user1, 0,  
+            string::utf8(b"Equipment Name"), 
+            string::utf8(b"Equipment Description"),
+            string::utf8(b"Equipment Uri"),
+            equipment_part_id,
+            affinity_id,
+            grade, level,
+            100, 10, 11, 12, 50,
+            10, 5, 5, 5, 5);
+
+        let user1_addr = signer::address_of(user1);
+        gem::mint_gem(user1, 100);
+
+        let gem_token = object::address_to_object<GemToken>(gem::gem_token_address());
+        let gem_balance = gem::gem_balance(user1_addr, gem_token);
+
+        upgrade_equipment(user1, char1, gem_token , 50);
+    }
+
+    #[test(creator = @main, user1 = @0x456, user2 = @0x789, aptos_framework = @aptos_framework)]
+    public fun test_upgrade_equipment_change_max_level(creator: &signer, user1: &signer, user2: &signer, aptos_framework: &signer) acquires CollectionCapability, EquipmentCapability, GameData, AdminData {
+   
+        init_module(creator);
+        gem::setup_coin(creator, user1, user2, aptos_framework);
+        gem::init_module_for_test(creator);
+        let equipment_part_id = 1;
+        let affinity_id = 1;
+        let grade = 1;
+        let level = 1;
+
+        let char1 = create_equipment(user1, 0,  
+            string::utf8(b"Equipment Name"), 
+            string::utf8(b"Equipment Description"),
+            string::utf8(b"Equipment Uri"),
+            equipment_part_id,
+            affinity_id,
+            grade, level,
+            100, 10, 11, 12, 50,
+            10, 5, 5, 5, 5);
+
+        let user1_addr = signer::address_of(user1);
+        gem::mint_gem(user1, 100);
+
+        let gem_token = object::address_to_object<GemToken>(gem::gem_token_address());
+        let gem_balance = gem::gem_balance(user1_addr, gem_token);
+
+        edit_max_weapon_level(creator, 60);
+        upgrade_equipment(user1, char1, gem_token , 55);
     }
 }

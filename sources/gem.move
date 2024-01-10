@@ -313,7 +313,6 @@ module main::gem {
         init_module(creator);
         setup_coin(creator, user1, user2, aptos_framework);
 
-        let user1_addr = signer::address_of(user1);
         let user2_addr = signer::address_of(user2);
 
         mint_gem(user2, 50);
@@ -355,7 +354,6 @@ module main::gem {
         init_module(creator);
         setup_coin(creator, user1, user2, aptos_framework);
 
-        let user1_addr = signer::address_of(user1);
         let user2_addr = signer::address_of(user2);
 
         mint_gem(user2, 8);
