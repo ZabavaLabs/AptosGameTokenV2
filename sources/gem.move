@@ -16,6 +16,7 @@ module main::gem {
 
     // friend main::character;
     friend main::equipment;
+    friend main::omni_cache;
 
     /// The token does not exist
     const ETOKEN_DOES_NOT_EXIST: u64 = 1;
