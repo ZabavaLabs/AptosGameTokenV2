@@ -1,28 +1,16 @@
 module main::omni_cache{
 
-    use aptos_framework::account::{Self, SignerCapability};
-    use aptos_framework::object::{Self, Object};
     use aptos_std::smart_table::{Self, SmartTable};
     use aptos_std::simple_map::{Self, SimpleMap};
 
-
-    use aptos_token_objects::collection;
-    use aptos_token_objects::token::{Self, Token};
-    use aptos_token_objects::property_map;
-    use aptos_framework::timestamp;
-
-
-
-    use std::error;
-    use std::option;
+    // use std::error;
+    // use std::option;
     use std::signer;
    
     use std::string::{Self, String};
-    use aptos_std::string_utils::{to_string};
+    // use aptos_std::string_utils::{to_string};
 
-    use main::gem::{Self, GemToken};
-
-    // friend main::omni_cache_test;
+    // use main::gem::{Self, GemToken};
 
     const ENOT_ADMIN: u64 = 1;
     const ENOT_OWNER: u64 = 2;
@@ -38,12 +26,11 @@ module main::omni_cache{
         admin_address: address
     }
 
-    struct SpecialEventsInfoEntry has store, copy, drop {
+    struct SpecialEventsInfoEntry has key, store, copy, drop {
         name: String,
         start_time: u64,
         end_time: u64,
-        whitelist_data: SimpleMap<address, u64>
-
+        whitelist_map: SimpleMap<address, u64>
     }
 
     struct SpecialEvents has key {
@@ -62,11 +49,14 @@ module main::omni_cache{
             admin_address: signer::address_of(account)
         };
         move_to(account, admin_data);
-    }
 
-    #[test_only]
-    public fun initialize(account: &signer){
-        init_module(account);
+        let special_events_info_entry = SpecialEventsInfoEntry{
+            name: string::utf8(b"First Mint Event"),
+            start_time: 0,
+            end_time: 0,
+            whitelist_map: simple_map::new<address,u64>()
+        };
+        move_to(account,special_events_info_entry);
     }
     
     public entry fun add_special_event(account:&signer, name: String, start_time:u64, end_time:u64) acquires SpecialEvents, AdminData{
@@ -75,45 +65,63 @@ module main::omni_cache{
         let special_events_table = &mut borrow_global_mut<SpecialEvents>(@main).special_events_table;
         let table_length = aptos_std::smart_table::length(special_events_table);
 
-        let whitelist_data = simple_map::create<address,u64>();
+        let whitelist_map = simple_map::new<address,u64>();
 
         let special_events_info_entry = SpecialEventsInfoEntry{
             name,
             start_time,
             end_time,
-            whitelist_data
+            whitelist_map: whitelist_map
         };
 
         smart_table::add(special_events_table, table_length, special_events_info_entry);
     }
 
-    public entry fun add_whitelist_addresses(account:&signer, event_id: u64, address_vector:vector<address>, amount_vector: vector<u64>) acquires SpecialEvents, AdminData{
+    // TODO: Check end_time > start time
+    // TODO: start time is greater than current timestamp
+
+    public entry fun modify_special_event_struct(account:&signer, name: String, start_time:u64, end_time:u64) acquires AdminData, SpecialEventsInfoEntry{
         assert_is_admin(account);
-
-        let special_events_table = &borrow_global<SpecialEvents>(@main).special_events_table;
-
-        assert!(smart_table::contains(special_events_table, event_id),EEVENT_ID_NOT_FOUND);
-
-        let special_events_info_entry = get_special_events_info_entry(event_id);        
-
-        let whitelist_data = special_events_info_entry.whitelist_data;
-     
-        simple_map::add_all(&mut whitelist_data, address_vector, amount_vector);
+        let special_events_info_entry = borrow_global_mut<SpecialEventsInfoEntry>(@main);
+        special_events_info_entry.name = name;
+        special_events_info_entry.start_time = start_time;
+        special_events_info_entry.end_time = end_time;
     }
 
-    public entry fun upsert_whitelist_address(account:&signer, event_id: u64, new_address:address, amount: u64) acquires SpecialEvents, AdminData{
+    public entry fun upsert_whitelist_address(account:&signer, modify_address:address, amount: u64) acquires AdminData, SpecialEventsInfoEntry{
         assert_is_admin(account);
-
-        let special_events_table = &borrow_global<SpecialEvents>(@main).special_events_table;
-
-        assert!(smart_table::contains(special_events_table, event_id),EEVENT_ID_NOT_FOUND);
-
-        let special_events_info_entry = get_special_events_info_entry(event_id);        
-
-        let whitelist_data = special_events_info_entry.whitelist_data;
-     
-        simple_map::upsert(&mut whitelist_data, new_address, amount);
+        let special_events_info_entry = borrow_global_mut<SpecialEventsInfoEntry>(@main);
+        simple_map::upsert(&mut special_events_info_entry.whitelist_map, modify_address, amount);
     }
+
+    // ISSUES WITH TABLE STUFF
+    // public entry fun add_whitelist_addresses(account:&signer, event_id: u64, address_vector:vector<address>, amount_vector: vector<u64>) acquires SpecialEvents, AdminData{
+    //     assert_is_admin(account);
+
+    //     let special_events_table = &borrow_global<SpecialEvents>(@main).special_events_table;
+
+    //     assert!(smart_table::contains(special_events_table, event_id),EEVENT_ID_NOT_FOUND);
+
+    //     let special_events_info_entry = get_special_events_info_entry(event_id);        
+
+    //     let whitelist_map = special_events_info_entry.whitelist_map;
+     
+    //     simple_map::add_all(&mut whitelist_map, address_vector, amount_vector);
+    // }
+
+    // public entry fun upsert_whitelist_address(account:&signer, event_id: u64, new_address:address, amount: u64) acquires SpecialEvents, AdminData{
+    //     assert_is_admin(account);
+
+    //     let special_events_table = &borrow_global<SpecialEvents>(@main).special_events_table;
+
+    //     assert!(smart_table::contains(special_events_table, event_id),EEVENT_ID_NOT_FOUND);
+
+    //     let special_events_info_entry = get_special_events_info_entry(event_id);        
+
+    //     simple_map::upsert(&mut special_events_info_entry.whitelist_map, new_address, amount);
+    // }
+
+
 
     public fun assert_is_admin(account:&signer) acquires AdminData {
         let addr = signer::address_of(account);
@@ -122,35 +130,50 @@ module main::omni_cache{
         assert!(addr == settings_data.admin_address, ENOT_ADMIN);
     }
 
+    // ANCHOR View Functions
+
+    // #[view]
+    // public fun get_special_events_info_entry(event_id: u64): SpecialEventsInfoEntry acquires SpecialEvents {
+    //     let special_events_table = &borrow_global<SpecialEvents>(@main).special_events_table;
+    //     *smart_table::borrow(special_events_table, event_id)
+    // }
+
+    // #[view]
+    // public fun get_special_events_table_length(): u64 acquires SpecialEvents {
+    //     let special_events_table = &borrow_global<SpecialEvents>(@main).special_events_table;
+    //     aptos_std::smart_table::length(special_events_table)
+    // }
+
+    // #[view]
+    // public fun get_whitelist_address_amount(event_id:u64, query_address: address): u64 acquires SpecialEvents {
+    //     let special_events_info_entry = get_special_events_info_entry(event_id);
+    //     *simple_map::borrow(&special_events_info_entry.whitelist_map, &query_address)
+    // }
+
+    // #[view]
+    // public fun whitelist_map_contains( event_id: u64, query_address: address): bool acquires SpecialEvents{
+    //     let special_events_table = &borrow_global<SpecialEvents>(@main).special_events_table;
+    //     assert!(smart_table::contains(special_events_table, event_id),EEVENT_ID_NOT_FOUND);     
+    //     simple_map::contains_key(&get_special_events_info_entry(event_id).whitelist_map, &query_address)
+    // }
+
 
     #[view]
-    public fun get_special_events_info_entry(event_id: u64): SpecialEventsInfoEntry acquires SpecialEvents {
-        let special_events_table = &borrow_global<SpecialEvents>(@main).special_events_table;
-        *smart_table::borrow(special_events_table, event_id)
+    public fun get_special_event_struct_amount(query_address:address):u64 acquires SpecialEventsInfoEntry{
+        let special_events_info_entry = borrow_global<SpecialEventsInfoEntry>(@main);
+        let whitelist_map = special_events_info_entry.whitelist_map;
+        if (simple_map::contains_key(&whitelist_map, &query_address))
+        {
+            *simple_map::borrow(&whitelist_map, &query_address)
+        } else{
+            0u64
+        }
     }
 
-    #[view]
-    public fun get_special_events_table_length(): u64 acquires SpecialEvents {
-        let special_events_table = &borrow_global<SpecialEvents>(@main).special_events_table;
-        aptos_std::smart_table::length(special_events_table)
-    }
-
-    #[test(creator = @main)]
-    public fun initialize_omni_cache_for_test(creator: &signer) {
-        initialize(creator);
-    }
-
-    #[test(creator = @main, user1 = @0x456, aptos_framework = @aptos_framework)]
-    public fun test_event_addition_to_table(creator: &signer, user1: &signer, aptos_framework: &signer) acquires AdminData, SpecialEvents {
-        initialize(creator);
-        timestamp::set_time_has_started_for_testing(aptos_framework);
-        let timestamp: u64 = timestamp::now_microseconds();
-
-        add_special_event(creator,string::utf8(b"Equipment Name"), 100, 1000);
-
-        upsert_whitelist_address(creator,0, signer::address_of(user1), 10);
-        
-        // assert!(get_equipment_table_length()==2, EINVALID_TABLE_LENGTH)
+    // ANCHOR Test Functions
+    #[test_only]
+    public fun initialize(account: &signer){
+        init_module(account);
     }
 
 

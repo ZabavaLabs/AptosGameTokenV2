@@ -11,12 +11,12 @@ module main::equipment{
     // use aptos_framework::fungible_asset::{Self, Metadata};
     // use aptos_framework::primary_fungible_store;
 
-    use std::error;
+    // use std::error;
     use std::option;
     use std::signer;
     // use std::signer::address_of;
     use std::string::{Self, String};
-    use aptos_std::string_utils::{to_string};
+    // use aptos_std::string_utils::{to_string};
 
     use main::gem::{Self, GemToken};
 
@@ -122,9 +122,6 @@ module main::equipment{
         create_equipment_collection(&token_resource, description, name, uri);
         
         let equipment_info_table = aptos_std::smart_table::new();
-
-
-        let table_length = aptos_std::smart_table::length(&equipment_info_table);
 
         let equipment_info = EquipmentInfo{
             table: equipment_info_table
@@ -625,7 +622,7 @@ module main::equipment{
         let gem_token = object::address_to_object<GemToken>(gem::gem_token_address());
         let gem_balance = gem::gem_balance(user1_addr, gem_token);
 
-        assert!(gem::gem_balance(user1_addr, gem_token) == 10, 0);
+        assert!(gem_balance == 10, 0);
 
         upgrade_equipment(user1, char1, gem_token , 6);
 
@@ -669,7 +666,6 @@ module main::equipment{
 
 
         let gem_token = object::address_to_object<GemToken>(gem::gem_token_address());
-        let gem_balance = gem::gem_balance(user1_addr, gem_token);
 
         assert!(gem::gem_balance(user1_addr, gem_token) == 20, 0);
 
@@ -720,11 +716,9 @@ module main::equipment{
             100, 10, 11, 12, 50,
             10, 5, 5, 5, 5);
 
-        let user1_addr = signer::address_of(user1);
         gem::mint_gem(user1, 10);
 
         let gem_token = object::address_to_object<GemToken>(gem::gem_token_address());
-        let gem_balance = gem::gem_balance(user1_addr, gem_token);
 
         upgrade_equipment(user2, char1, gem_token , 1);
 
@@ -753,11 +747,9 @@ module main::equipment{
             100, 10, 11, 12, 50,
             10, 5, 5, 5, 5);
 
-        let user1_addr = signer::address_of(user1);
         gem::mint_gem(user1, 100);
 
         let gem_token = object::address_to_object<GemToken>(gem::gem_token_address());
-        let gem_balance = gem::gem_balance(user1_addr, gem_token);
 
         upgrade_equipment(user1, char1, gem_token , 49);
     }
@@ -786,11 +778,9 @@ module main::equipment{
             100, 10, 11, 12, 50,
             10, 5, 5, 5, 5);
 
-        let user1_addr = signer::address_of(user1);
         gem::mint_gem(user1, 100);
 
         let gem_token = object::address_to_object<GemToken>(gem::gem_token_address());
-        let gem_balance = gem::gem_balance(user1_addr, gem_token);
 
         upgrade_equipment(user1, char1, gem_token , 50);
     }
@@ -822,7 +812,7 @@ module main::equipment{
         gem::mint_gem(user1, 100);
 
         let gem_token = object::address_to_object<GemToken>(gem::gem_token_address());
-        let gem_balance = gem::gem_balance(user1_addr, gem_token);
+        let _ = gem::gem_balance(user1_addr, gem_token);
 
         edit_max_weapon_level(creator, 60);
         upgrade_equipment(user1, char1, gem_token , 55);
