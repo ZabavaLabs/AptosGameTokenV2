@@ -20,6 +20,7 @@ module main::omni_cache_test{
 
     // use main::gem::{Self, GemToken};
     use main::omni_cache;
+    use main::admin;
 
     const EINVALID_TABLE_LENGTH: u64 = 1;
     const EWHITELIST_AMOUNT: u64 = 2;
@@ -34,12 +35,13 @@ module main::omni_cache_test{
 
     #[test(creator = @main)]
     public fun initialize_omni_cache_for_test_2(creator: &signer) {
+        admin::initialize(creator);
         omni_cache::initialize(creator);
     }
 
     #[test(creator = @main, user1 = @0x456, user2 = @0x678, user3= @0x789, aptos_framework = @aptos_framework)]
     public fun test_event_addition_to_table(creator: &signer, user1: &signer, user2:&signer, user3:&signer, aptos_framework: &signer) {
-
+        admin::initialize(creator);
         omni_cache::initialize(creator);
         timestamp::set_time_has_started_for_testing(aptos_framework);
         let timestamp: u64 = timestamp::now_microseconds();

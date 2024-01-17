@@ -11,8 +11,9 @@ module main::omni_cache{
     // use aptos_std::string_utils::{to_string};
 
     // use main::gem::{Self, GemToken};
+    use main::admin::{Self};
 
-    const ENOT_ADMIN: u64 = 1;
+
     const ENOT_OWNER: u64 = 2;
     const EEVENT_ID_NOT_FOUND: u64 = 3;
     const EINVALID_TABLE_LENGTH: u64 = 4;
@@ -22,10 +23,7 @@ module main::omni_cache{
     const EINSUFFICIENT_BALANCE: u64 = 65540;
     
 
-    struct AdminData has key {
-        admin_address: address
-    }
-
+   
     struct SpecialEventsInfoEntry has key, store, copy, drop {
         name: String,
         start_time: u64,
@@ -45,11 +43,6 @@ module main::omni_cache{
         };
         move_to(account, special_events);
 
-        let admin_data = AdminData{
-            admin_address: signer::address_of(account)
-        };
-        move_to(account, admin_data);
-
         let special_events_info_entry = SpecialEventsInfoEntry{
             name: string::utf8(b"First Mint Event"),
             start_time: 0,
@@ -59,8 +52,9 @@ module main::omni_cache{
         move_to(account,special_events_info_entry);
     }
     
-    public entry fun add_special_event(account:&signer, name: String, start_time:u64, end_time:u64) acquires SpecialEvents, AdminData{
-        assert_is_admin(account);
+    public entry fun add_special_event(account:&signer, name: String, start_time:u64, end_time:u64) acquires SpecialEvents{
+        let account_addr = signer::address_of(account);
+        admin::assert_is_admin(account_addr);
 
         let special_events_table = &mut borrow_global_mut<SpecialEvents>(@main).special_events_table;
         let table_length = aptos_std::smart_table::length(special_events_table);
@@ -80,22 +74,26 @@ module main::omni_cache{
     // TODO: Check end_time > start time
     // TODO: start time is greater than current timestamp
 
-    public entry fun modify_special_event_struct(account:&signer, name: String, start_time:u64, end_time:u64) acquires AdminData, SpecialEventsInfoEntry{
-        assert_is_admin(account);
+    public entry fun modify_special_event_struct(account:&signer, name: String, start_time:u64, end_time:u64) acquires SpecialEventsInfoEntry{
+        let account_addr = signer::address_of(account);
+        admin::assert_is_admin(account_addr);
+
         let special_events_info_entry = borrow_global_mut<SpecialEventsInfoEntry>(@main);
         special_events_info_entry.name = name;
         special_events_info_entry.start_time = start_time;
         special_events_info_entry.end_time = end_time;
     }
 
-    public entry fun upsert_whitelist_address(account:&signer, modify_address:address, amount: u64) acquires AdminData, SpecialEventsInfoEntry{
-        assert_is_admin(account);
+    public entry fun upsert_whitelist_address(account:&signer, modify_address:address, amount: u64) acquires SpecialEventsInfoEntry{
+        let account_addr = signer::address_of(account);
+        admin::assert_is_admin(account_addr);
         let special_events_info_entry = borrow_global_mut<SpecialEventsInfoEntry>(@main);
         simple_map::upsert(&mut special_events_info_entry.whitelist_map, modify_address, amount);
     }
 
-    public entry fun reset_event_and_add_addresses(account:&signer, name: String, start_time:u64, end_time:u64, address_vector:vector<address>, amount_vector: vector<u64>) acquires AdminData, SpecialEventsInfoEntry{
-        assert_is_admin(account);
+    public entry fun reset_event_and_add_addresses(account:&signer, name: String, start_time:u64, end_time:u64, address_vector:vector<address>, amount_vector: vector<u64>) acquires  SpecialEventsInfoEntry{
+        let account_addr = signer::address_of(account);
+        admin::assert_is_admin(account_addr);
         let special_events_info_entry = borrow_global_mut<SpecialEventsInfoEntry>(@main);
         special_events_info_entry.name = name;
         special_events_info_entry.start_time = start_time;
@@ -131,14 +129,6 @@ module main::omni_cache{
     //     simple_map::upsert(&mut special_events_info_entry.whitelist_map, new_address, amount);
     // }
 
-
-
-    public fun assert_is_admin(account:&signer) acquires AdminData {
-        let addr = signer::address_of(account);
-        let settings_data = borrow_global<AdminData>(@main);
- 
-        assert!(addr == settings_data.admin_address, ENOT_ADMIN);
-    }
 
     // ANCHOR View Functions
 
