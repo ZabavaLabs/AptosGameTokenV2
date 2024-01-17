@@ -4,7 +4,6 @@ module main::equipment{
     use aptos_framework::object::{Self, Object};
     use aptos_std::smart_table::{Self, SmartTable};
 
-    // use aptos_framework::timestamp;
     use aptos_token_objects::collection;
     use aptos_token_objects::token::{Self, Token};
     use aptos_token_objects::property_map;
@@ -21,10 +20,11 @@ module main::equipment{
 
     use main::gem::{Self, GemToken};
 
+    use main::admin::{Self, ENOT_ADMIN};
+
     // use std::debug::print;
     // use std::vector;
 
-    const ENOT_ADMIN: u64 = 1;
     const ENOT_OWNER: u64 = 2;
     const ECHAR_ID_NOT_FOUND: u64 = 3;
     const EINVALID_TABLE_LENGTH: u64 = 4;
@@ -33,10 +33,6 @@ module main::equipment{
     const EMAX_LEVEL: u64 = 7;
     const EINSUFFICIENT_BALANCE: u64 = 65540;
     
-
-    struct AdminData has key {
-        admin_address: address
-    }
 
     struct GameData has key {
         max_equipment_level: u64
@@ -135,12 +131,6 @@ module main::equipment{
         };
         move_to(account, equipment_info);
 
-        let settings = AdminData{
-            admin_address: signer::address_of(account)
-        };
-
-        move_to(account, settings);
-
         let gameData = GameData{
             max_equipment_level: 50
         };
@@ -148,16 +138,9 @@ module main::equipment{
         move_to(account, gameData);
     }
 
-    public entry fun edit_admin(caller: &signer, new_admin_addr: address) acquires AdminData {
+    public entry fun edit_max_weapon_level(caller: &signer, new_max_level: u64) acquires GameData {
         let caller_address = signer::address_of(caller);
-        assert_is_admin(caller_address);
-        let settings_data = borrow_global_mut<AdminData>(@main);
-        settings_data.admin_address = new_admin_addr;
-    }
-
-    public entry fun edit_max_weapon_level(caller: &signer, new_max_level: u64) acquires GameData, AdminData {
-        let caller_address = signer::address_of(caller);
-        assert_is_admin(caller_address);
+        admin::assert_is_admin(caller_address);
         let game_data = borrow_global_mut<GameData>(@main);
         game_data.max_equipment_level = new_max_level;
     }
@@ -321,24 +304,6 @@ module main::equipment{
         );
 
         let new_equipment = EquipmentCapability {
-            // name: token_name,
-            // description: token_description,
-            // uri: token_uri,
-            // equipment_id,
-            // equipment_part_id,
-            // affinity_id,
-            // grade,
-            // level,
-            // hp: hp,
-            // atk: atk,
-            // def: def,
-            // atk_spd: atk_spd,
-            // mv_spd: mv_spd,
-            // growth_hp,
-            // growth_atk,
-            // growth_def,
-            // growth_atk_spd,
-            // growth_mv_spd,
             mutator_ref,
             burn_ref,
             property_mutator_ref
@@ -407,9 +372,9 @@ module main::equipment{
         growth_def:u64,
         growth_atk_spd:u64,
         growth_mv_spd:u64,
-        ) acquires EquipmentInfo, AdminData {
+        ) acquires EquipmentInfo {
 
-        assert_is_admin(signer::address_of(account));
+        admin::assert_is_admin(signer::address_of(account));
 
         let equipment_info_table = &mut borrow_global_mut<EquipmentInfo>(@main).table;
         let table_length = aptos_std::smart_table::length(equipment_info_table);
@@ -441,12 +406,6 @@ module main::equipment{
         smart_table::contains(equipment_info_table, equipment_id)
     }
 
-    fun assert_is_admin(addr: address) acquires AdminData {
-        let settings_data = borrow_global<AdminData>(@main);
-        assert!(addr == settings_data.admin_address, ENOT_ADMIN);
-        // assert!(addr == main::admin::get_admin_address(), ENOT_ADMIN);
-    }
-
     // ANCHOR Aptos View Functions
 
     #[view]
@@ -459,13 +418,7 @@ module main::equipment{
     public fun get_equipment_table_length(): u64 acquires EquipmentInfo {
         let equipment_info_table = &borrow_global<EquipmentInfo>(@main).table;
         aptos_std::smart_table::length(equipment_info_table)
-    }
-
-   
-
-
-
- 
+    } 
 
 
     // ANCHOR TESTING
@@ -479,8 +432,9 @@ module main::equipment{
     }
 
     #[test(creator = @main)]
-    public fun test_equipment_addition_to_table(creator: &signer) acquires EquipmentInfo, AdminData {
+    public fun test_equipment_addition_to_table(creator: &signer) acquires EquipmentInfo {
         init_module(creator);
+        admin::initialize(creator);
         let equipment_part_id = 1;
         let affinity_id = 1;
         let grade = 1;
@@ -507,9 +461,10 @@ module main::equipment{
     }
 
     #[test(creator = @main, user1 = @0x456 )]
-    #[expected_failure(abort_code = ENOT_ADMIN)]
-    public fun test_add_equipment_by_others(creator: &signer, user1: &signer) acquires EquipmentInfo, AdminData {
+    #[expected_failure(abort_code = ENOT_ADMIN, location = main::admin)]
+    public fun test_add_equipment_by_others(creator: &signer, user1: &signer) acquires EquipmentInfo {
         init_module(creator);
+        admin::initialize(creator);
         let equipment_part_id = 1;
         let affinity_id = 1;
         let grade = 1;
@@ -525,8 +480,9 @@ module main::equipment{
     }
 
     #[test(creator = @main, user1 = @0x456 )]
-    public fun test_edit_admin(creator: &signer, user1: &signer) acquires EquipmentInfo, AdminData {
+    public fun test_edit_admin(creator: &signer, user1: &signer) acquires EquipmentInfo {
         init_module(creator);
+        admin::initialize(creator);
         let equipment_part_id = 1;
         let affinity_id = 1;
         let grade = 1;
@@ -539,7 +495,7 @@ module main::equipment{
         grade,
         100, 10, 11, 12, 50,
         10, 5, 5, 5, 5);
-        edit_admin(creator, signer::address_of(user1));
+        admin::edit_admin(creator, signer::address_of(user1));
         add_equipment_entry(user1, 
         string::utf8(b"Equipment Name"), 
         string::utf8(b"Equipment Description"),
@@ -553,8 +509,10 @@ module main::equipment{
 
     #[test(creator = @main, user1 = @0x456 )]
     #[expected_failure(abort_code = ENOT_ADMIN)]
-    public fun test_edit_admin_2(creator: &signer, user1: &signer) acquires EquipmentInfo, AdminData {
+    public fun test_edit_admin_2(creator: &signer, user1: &signer) acquires EquipmentInfo {
         init_module(creator);
+        admin::initialize(creator);
+
         let equipment_part_id = 1;
         let affinity_id = 1;
         let grade = 1;
@@ -567,7 +525,7 @@ module main::equipment{
         grade,
         100, 10, 11, 12, 50,
         10, 5, 5, 5, 5);
-        edit_admin(creator, signer::address_of(user1));
+        admin::edit_admin(creator, signer::address_of(user1));
         add_equipment_entry(creator, 
         string::utf8(b"Equipment Name"), 
         string::utf8(b"Equipment Description"),
@@ -580,9 +538,10 @@ module main::equipment{
     }
 
     #[test(creator = @main, user1 = @0x456)]
-    public fun test_mint(creator: &signer, user1: &signer) acquires CollectionCapability, EquipmentInfo, AdminData {
+    public fun test_mint(creator: &signer, user1: &signer) acquires CollectionCapability, EquipmentInfo{
    
         init_module(creator);
+        admin::initialize(creator);
 
         let equipment_part_id = 1;
         let affinity_id = 1;
@@ -640,6 +599,8 @@ module main::equipment{
     public fun test_upgrade_equipment(creator: &signer, user1: &signer, user2: &signer, aptos_framework: &signer) acquires CollectionCapability, EquipmentCapability, GameData {
    
         init_module(creator);
+        admin::initialize(creator);
+
         gem::setup_coin(creator, user1, user2, aptos_framework);
         gem::init_module_for_test(creator);
         let equipment_part_id = 1;
@@ -684,6 +645,8 @@ module main::equipment{
     public fun test_upgrade_equipment_multiple(creator: &signer, user1: &signer, user2: &signer, aptos_framework: &signer) acquires CollectionCapability, EquipmentCapability, GameData {
    
         init_module(creator);
+        admin::initialize(creator);
+
         gem::setup_coin(creator, user1, user2, aptos_framework);
         gem::init_module_for_test(creator);
         let equipment_part_id = 1;
@@ -738,6 +701,8 @@ module main::equipment{
     public fun test_upgrade_equipment_wrong_ownership(creator: &signer, user1: &signer, user2: &signer, aptos_framework: &signer) acquires CollectionCapability, EquipmentCapability, GameData {
    
         init_module(creator);
+        admin::initialize(creator);
+
         gem::setup_coin(creator, user1, user2, aptos_framework);
         gem::init_module_for_test(creator);
         let equipment_part_id = 1;
@@ -769,6 +734,8 @@ module main::equipment{
     public fun test_upgrade_equipment_to_max_level(creator: &signer, user1: &signer, user2: &signer, aptos_framework: &signer) acquires CollectionCapability, EquipmentCapability, GameData {
    
         init_module(creator);
+        admin::initialize(creator);
+
         gem::setup_coin(creator, user1, user2, aptos_framework);
         gem::init_module_for_test(creator);
         let equipment_part_id = 1;
@@ -800,6 +767,8 @@ module main::equipment{
     public fun test_upgrade_equipment_past_max_level(creator: &signer, user1: &signer, user2: &signer, aptos_framework: &signer) acquires CollectionCapability, EquipmentCapability, GameData {
    
         init_module(creator);
+        admin::initialize(creator);
+
         gem::setup_coin(creator, user1, user2, aptos_framework);
         gem::init_module_for_test(creator);
         let equipment_part_id = 1;
@@ -827,9 +796,11 @@ module main::equipment{
     }
 
     #[test(creator = @main, user1 = @0x456, user2 = @0x789, aptos_framework = @aptos_framework)]
-    public fun test_upgrade_equipment_change_max_level(creator: &signer, user1: &signer, user2: &signer, aptos_framework: &signer) acquires CollectionCapability, EquipmentCapability, GameData, AdminData {
+    public fun test_upgrade_equipment_change_max_level(creator: &signer, user1: &signer, user2: &signer, aptos_framework: &signer) acquires CollectionCapability, EquipmentCapability, GameData {
    
         init_module(creator);
+        admin::initialize(creator);
+
         gem::setup_coin(creator, user1, user2, aptos_framework);
         gem::init_module_for_test(creator);
         let equipment_part_id = 1;

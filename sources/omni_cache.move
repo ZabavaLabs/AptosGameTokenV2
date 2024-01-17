@@ -9,6 +9,7 @@ module main::omni_cache{
     use aptos_token_objects::collection;
     use aptos_token_objects::token::{Self, Token};
     use aptos_token_objects::property_map;
+    use aptos_framework::timestamp;
 
 
 
@@ -21,6 +22,7 @@ module main::omni_cache{
 
     use main::gem::{Self, GemToken};
 
+    // friend main::omni_cache_test;
 
     const ENOT_ADMIN: u64 = 1;
     const ENOT_OWNER: u64 = 2;
@@ -51,16 +53,24 @@ module main::omni_cache{
   
     fun init_module(account: &signer){
         let special_events_table = aptos_std::smart_table::new();
-
         let special_events = SpecialEvents{
             special_events_table: special_events_table
         };
         move_to(account, special_events);
+
+        let admin_data = AdminData{
+            admin_address: signer::address_of(account)
+        };
+        move_to(account, admin_data);
     }
 
+    #[test_only]
+    public fun initialize(account: &signer){
+        init_module(account);
+    }
     
     public entry fun add_special_event(account:&signer, name: String, start_time:u64, end_time:u64) acquires SpecialEvents, AdminData{
-        assert_is_admin(signer::address_of(account));
+        assert_is_admin(account);
 
         let special_events_table = &mut borrow_global_mut<SpecialEvents>(@main).special_events_table;
         let table_length = aptos_std::smart_table::length(special_events_table);
@@ -78,7 +88,7 @@ module main::omni_cache{
     }
 
     public entry fun add_whitelist_addresses(account:&signer, event_id: u64, address_vector:vector<address>, amount_vector: vector<u64>) acquires SpecialEvents, AdminData{
-        assert_is_admin(signer::address_of(account));
+        assert_is_admin(account);
 
         let special_events_table = &borrow_global<SpecialEvents>(@main).special_events_table;
 
@@ -92,7 +102,7 @@ module main::omni_cache{
     }
 
     public entry fun upsert_whitelist_address(account:&signer, event_id: u64, new_address:address, amount: u64) acquires SpecialEvents, AdminData{
-        assert_is_admin(signer::address_of(account));
+        assert_is_admin(account);
 
         let special_events_table = &borrow_global<SpecialEvents>(@main).special_events_table;
 
@@ -105,8 +115,10 @@ module main::omni_cache{
         simple_map::upsert(&mut whitelist_data, new_address, amount);
     }
 
-    fun assert_is_admin(addr: address) acquires AdminData {
+    public fun assert_is_admin(account:&signer) acquires AdminData {
+        let addr = signer::address_of(account);
         let settings_data = borrow_global<AdminData>(@main);
+ 
         assert!(addr == settings_data.admin_address, ENOT_ADMIN);
     }
 
@@ -116,5 +128,30 @@ module main::omni_cache{
         let special_events_table = &borrow_global<SpecialEvents>(@main).special_events_table;
         *smart_table::borrow(special_events_table, event_id)
     }
+
+    #[view]
+    public fun get_special_events_table_length(): u64 acquires SpecialEvents {
+        let special_events_table = &borrow_global<SpecialEvents>(@main).special_events_table;
+        aptos_std::smart_table::length(special_events_table)
+    }
+
+    #[test(creator = @main)]
+    public fun initialize_omni_cache_for_test(creator: &signer) {
+        initialize(creator);
+    }
+
+    #[test(creator = @main, user1 = @0x456, aptos_framework = @aptos_framework)]
+    public fun test_event_addition_to_table(creator: &signer, user1: &signer, aptos_framework: &signer) acquires AdminData, SpecialEvents {
+        initialize(creator);
+        timestamp::set_time_has_started_for_testing(aptos_framework);
+        let timestamp: u64 = timestamp::now_microseconds();
+
+        add_special_event(creator,string::utf8(b"Equipment Name"), 100, 1000);
+
+        upsert_whitelist_address(creator,0, signer::address_of(user1), 10);
+        
+        // assert!(get_equipment_table_length()==2, EINVALID_TABLE_LENGTH)
+    }
+
 
 }
