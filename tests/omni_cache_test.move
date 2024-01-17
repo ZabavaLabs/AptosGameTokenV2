@@ -23,14 +23,12 @@ module main::omni_cache_test{
 
     const EINVALID_TABLE_LENGTH: u64 = 1;
     const EWHITELIST_AMOUNT: u64 = 2;
+    const EINVALID_SPECIAL_EVENT_DETAIL: u64 = 3;
 
 
-    const ENOT_OWNER: u64 = 2;
-    const EEVENT_ID_NOT_FOUND: u64 = 3;
+    const EEVENT_ID_NOT_FOUND: u64 = 4;
 
-    const EINVALID_PROPERTY_VALUE: u64 = 5;
-    const EINVALID_BALANCE: u64 = 6;
-    const EMAX_LEVEL: u64 = 7;
+
     const EINSUFFICIENT_BALANCE: u64 = 65540;
 
 
@@ -39,8 +37,8 @@ module main::omni_cache_test{
         omni_cache::initialize(creator);
     }
 
-    #[test(creator = @main, user1 = @0x456, aptos_framework = @aptos_framework)]
-    public fun test_event_addition_to_table_2(creator: &signer, user1: &signer, aptos_framework: &signer) {
+    #[test(creator = @main, user1 = @0x456, user2 = @0x678, user3= @0x789, aptos_framework = @aptos_framework)]
+    public fun test_event_addition_to_table(creator: &signer, user1: &signer, user2:&signer, user3:&signer, aptos_framework: &signer) {
 
         omni_cache::initialize(creator);
         timestamp::set_time_has_started_for_testing(aptos_framework);
@@ -48,6 +46,9 @@ module main::omni_cache_test{
 
         let event_name = string::utf8(b"First Mint Event");
         let user1_addr = signer::address_of(user1);
+        let user2_addr = signer::address_of(user2);
+        let user3_addr = signer::address_of(user3);
+        let creator_addr = signer::address_of(creator);
         
         
         omni_cache::modify_special_event_struct(creator, event_name, timestamp, timestamp + 100_000_000);
@@ -57,6 +58,22 @@ module main::omni_cache_test{
         omni_cache::upsert_whitelist_address(creator, signer::address_of(user1),10);
         assert!(omni_cache::get_special_event_struct_amount(user1_addr)==10, EWHITELIST_AMOUNT);
        
+        let event_name_2 = string::utf8(b"Second Mint Event");
+        let new_start_time = timestamp + 200_000_000;
+        let new_end_time = timestamp + 300_000_000;
+
+        omni_cache::reset_event_and_add_addresses(creator, event_name_2, 
+            new_start_time, new_end_time, 
+            vector[user1_addr, user2_addr, user3_addr], vector[1,2,3]);
+        assert!(omni_cache::get_special_event_struct_amount(user1_addr)==1, EWHITELIST_AMOUNT);
+        assert!(omni_cache::get_special_event_struct_amount(user2_addr)==2, EWHITELIST_AMOUNT);
+        assert!(omni_cache::get_special_event_struct_amount(user3_addr)==3, EWHITELIST_AMOUNT);
+        assert!(omni_cache::get_special_event_struct_amount(creator_addr)==0, EWHITELIST_AMOUNT);
+        let (returned_event_name, returned_start_time, returned_end_time) = omni_cache::get_special_event_struct_details();
+        assert!(returned_event_name ==event_name_2, EINVALID_SPECIAL_EVENT_DETAIL);
+        assert!(returned_start_time ==new_start_time, EINVALID_SPECIAL_EVENT_DETAIL);
+        assert!(returned_end_time ==new_end_time, EINVALID_SPECIAL_EVENT_DETAIL);
+
         // ISSUES WITH TABLE STUFF
         // omni_cache::add_special_event(creator,string::utf8(b"Event 1"), timestamp, timestamp + 100_000_000);
         // omni_cache::upsert_whitelist_address(creator, 0, signer::address_of(user1), 10);    

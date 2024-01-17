@@ -94,6 +94,16 @@ module main::omni_cache{
         simple_map::upsert(&mut special_events_info_entry.whitelist_map, modify_address, amount);
     }
 
+    public entry fun reset_event_and_add_addresses(account:&signer, name: String, start_time:u64, end_time:u64, address_vector:vector<address>, amount_vector: vector<u64>) acquires AdminData, SpecialEventsInfoEntry{
+        assert_is_admin(account);
+        let special_events_info_entry = borrow_global_mut<SpecialEventsInfoEntry>(@main);
+        special_events_info_entry.name = name;
+        special_events_info_entry.start_time = start_time;
+        special_events_info_entry.end_time = end_time;
+        special_events_info_entry.whitelist_map = simple_map::new<address,u64>();
+        simple_map::add_all(&mut special_events_info_entry.whitelist_map, address_vector, amount_vector);
+    }
+
     // ISSUES WITH TABLE STUFF
     // public entry fun add_whitelist_addresses(account:&signer, event_id: u64, address_vector:vector<address>, amount_vector: vector<u64>) acquires SpecialEvents, AdminData{
     //     assert_is_admin(account);
@@ -168,6 +178,12 @@ module main::omni_cache{
         } else{
             0u64
         }
+    }
+
+    #[view]
+    public fun get_special_event_struct_details():(String, u64, u64) acquires SpecialEventsInfoEntry{
+        let special_events_info_entry = borrow_global<SpecialEventsInfoEntry>(@main);
+        (special_events_info_entry.name, special_events_info_entry.start_time, special_events_info_entry.end_time)
     }
 
     // ANCHOR Test Functions
