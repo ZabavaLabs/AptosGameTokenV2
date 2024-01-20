@@ -3,15 +3,20 @@ module main::omni_cache{
     use aptos_std::smart_table::{Self, SmartTable};
     use aptos_std::simple_map::{Self, SimpleMap};
 
+
     // use std::error;
     // use std::option;
     use std::signer;
+    use aptos_framework::object::{Object};
    
     use std::string::{Self, String};
     // use aptos_std::string_utils::{to_string};
 
-    // use main::gem::{Self, GemToken};
+    use main::gem::{Self, GemToken};
     use main::admin::{Self};
+    use main::pseudorandom;
+    use main::equipment;
+
 
 
     const ENOT_OWNER: u64 = 2;
@@ -22,7 +27,11 @@ module main::omni_cache{
     const EMAX_LEVEL: u64 = 7;
     const EINSUFFICIENT_BALANCE: u64 = 65540;
     
-
+    struct OmniCacheData has key {
+        shards_to_unlock_cache: u64,
+        normal_equipment_weight: u64,
+        special_equipment_weight: u64
+    }
    
     struct SpecialEventsInfoEntry has key, store, copy, drop {
         name: String,
@@ -35,7 +44,15 @@ module main::omni_cache{
         special_events_table: SmartTable<u64, SpecialEventsInfoEntry>
     }
 
+    struct NormalEquipmentCacheData has key {
+        table: SmartTable<u64, u64>
+    }
   
+    struct SpecialEquipmentCacheData has key {
+        table: SmartTable<u64, u64>
+    }
+
+
     fun init_module(account: &signer){
         let special_events_table = aptos_std::smart_table::new();
         let special_events = SpecialEvents{
@@ -50,29 +67,90 @@ module main::omni_cache{
             whitelist_map: simple_map::new<address,u64>()
         };
         move_to(account,special_events_info_entry);
+
+        let omni_cache_data = OmniCacheData{
+            shards_to_unlock_cache: 10,
+            normal_equipment_weight: 100,
+            special_equipment_weight: 0,
+        };
+        move_to(account, omni_cache_data);
+    
+        let normal_equipment_cache_table = smart_table::new();
+        let normal_equipment_cache_data = NormalEquipmentCacheData{
+            table: normal_equipment_cache_table
+        };
+        move_to(account, normal_equipment_cache_data);
+
+        let special_equipment_cache_table = smart_table::new();
+        let special_equipment_cache_data = SpecialEquipmentCacheData{
+            table: special_equipment_cache_table
+        };
+        move_to(account, special_equipment_cache_data);
     }
     
-    public entry fun add_special_event(account:&signer, name: String, start_time:u64, end_time:u64) acquires SpecialEvents{
-        let account_addr = signer::address_of(account);
-        admin::assert_is_admin(account_addr);
+    // public entry fun add_special_event(account:&signer, name: String, start_time:u64, end_time:u64) acquires SpecialEvents{
+    //     let account_addr = signer::address_of(account);
+    //     admin::assert_is_admin(account_addr);
 
-        let special_events_table = &mut borrow_global_mut<SpecialEvents>(@main).special_events_table;
-        let table_length = aptos_std::smart_table::length(special_events_table);
+    //     let special_events_table = &mut borrow_global_mut<SpecialEvents>(@main).special_events_table;
+    //     let table_length = aptos_std::smart_table::length(special_events_table);
 
-        let whitelist_map = simple_map::new<address,u64>();
+    //     let whitelist_map = simple_map::new<address,u64>();
 
-        let special_events_info_entry = SpecialEventsInfoEntry{
-            name,
-            start_time,
-            end_time,
-            whitelist_map: whitelist_map
-        };
+    //     let special_events_info_entry = SpecialEventsInfoEntry{
+    //         name,
+    //         start_time,
+    //         end_time,
+    //         whitelist_map: whitelist_map
+    //     };
 
-        smart_table::add(special_events_table, table_length, special_events_info_entry);
-    }
+    //     smart_table::add(special_events_table, table_length, special_events_info_entry);
+    // }
 
     // TODO: Check end_time > start time
     // TODO: start time is greater than current timestamp
+
+    public entry fun unlock_cache(account:&signer, gem_object: Object<GemToken>) acquires OmniCacheData, SpecialEquipmentCacheData, NormalEquipmentCacheData{
+        let omni_cache_data = borrow_global<OmniCacheData>(@main);
+        let shards_spend = omni_cache_data.shards_to_unlock_cache;
+        gem::burn_gem(account, gem_object, shards_spend);
+        let account_addr = signer::address_of(account);
+
+        let normal_equipment_weight = omni_cache_data.normal_equipment_weight;
+        let special_equipment_weight = omni_cache_data.special_equipment_weight;
+
+        let random_number = pseudorandom::rand_u64_range(&account_addr, 1, normal_equipment_weight + special_equipment_weight + 1);
+        if (random_number <= normal_equipment_weight){
+            let normal_equipment_cache_table = &borrow_global<NormalEquipmentCacheData>(@main).table;
+            let normal_equipment_cache_table_length:u64 = aptos_std::smart_table::length(normal_equipment_cache_table);
+            let row_id = pseudorandom::rand_u64_range(&account_addr, 0, normal_equipment_cache_table_length);
+            let random_equipment_id:u64 = *smart_table::borrow(normal_equipment_cache_table, row_id);
+            equipment::mint_equipment(account, random_equipment_id);
+        } else{
+            let special_equipment_cache_table = &borrow_global<SpecialEquipmentCacheData>(@main).table;
+            let special_equipment_cache_table_length:u64 = aptos_std::smart_table::length(special_equipment_cache_table);
+            let row_id = pseudorandom::rand_u64_range(&account_addr, 0, special_equipment_cache_table_length);
+            let random_equipment_id:u64 = *smart_table::borrow(special_equipment_cache_table, row_id);
+            equipment::mint_equipment(account, random_equipment_id);
+        }
+    }
+
+    public entry fun add_equipment_to_cache(account:&signer, equipment_id:u64, cache_id:u64) acquires NormalEquipmentCacheData, SpecialEquipmentCacheData{
+        let account_addr = signer::address_of(account);
+        admin::assert_is_admin(account_addr);
+
+        if (cache_id == 0){
+            let normal_equipment_cache_table = &mut borrow_global_mut<NormalEquipmentCacheData>(@main).table;
+            let normal_equipment_cache_table_length:u64 = aptos_std::smart_table::length(normal_equipment_cache_table);
+            smart_table::add(normal_equipment_cache_table, normal_equipment_cache_table_length, equipment_id);
+            
+        } else if (cache_id == 1){
+            let special_equipment_cache_table = &mut borrow_global_mut<SpecialEquipmentCacheData>(@main).table;
+            let special_equipment_cache_table_length:u64 = aptos_std::smart_table::length(special_equipment_cache_table);
+            smart_table::add(special_equipment_cache_table, special_equipment_cache_table_length, equipment_id);
+        }
+       
+    }
 
     public entry fun modify_special_event_struct(account:&signer, name: String, start_time:u64, end_time:u64) acquires SpecialEventsInfoEntry{
         let account_addr = signer::address_of(account);

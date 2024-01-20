@@ -351,7 +351,7 @@ module main::equipment{
     
     // ANCHOR Aptos Utility Functions
 
-    public(friend) entry fun add_equipment_entry(
+    public entry fun add_equipment_entry(
         account: &signer, 
         name: String, 
         description: String, 
