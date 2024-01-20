@@ -146,7 +146,7 @@ module main::omni_cache_test{
         let user1_addr = signer::address_of(user1);
         let _ = signer::address_of(user2);
         let _ = signer::address_of(user3);
-        let creator_addr = signer::address_of(creator);
+        let _ = signer::address_of(creator);
         
         timestamp::update_global_time_for_test(1000);
 
@@ -214,7 +214,7 @@ module main::omni_cache_test{
         block::initialize_for_test(aptos_framework, 5);
         
         let _: u64 = timestamp::now_microseconds();
-        let event_name = string::utf8(b"First Mint Event");
+        let _ = string::utf8(b"First Mint Event");
         let _ = signer::address_of(user1);
         let _ = signer::address_of(user2);
         let _ = signer::address_of(user3);
@@ -241,5 +241,139 @@ module main::omni_cache_test{
 
         omni_cache::add_equipment_to_cache(creator, 0, 0);
         omni_cache::unlock_cache(user1, gem_token);
+    }
+
+    #[test(creator = @main, user1 = @0x456, user2 = @0x678, user3= @0x789, aptos_framework = @aptos_framework)]
+    public fun test_unlock_cache_via_event(creator: &signer, user1: &signer, user2:&signer, user3:&signer, aptos_framework: &signer) {
+        admin::initialize(creator);
+        pseudorandom::init(creator);
+        gem::setup_coin(creator, user1, user2, aptos_framework);
+        gem::init_module_for_test(creator);
+        equipment::init_module_for_test(creator);
+        omni_cache::initialize(creator);
+
+        account::create_account_for_test(@aptos_framework);
+        timestamp::set_time_has_started_for_testing(aptos_framework);
+        block::initialize_for_test(aptos_framework, 5);
+        
+        let _: u64 = timestamp::now_microseconds();
+        let _ = string::utf8(b"First Mint Event");
+        let user1_addr = signer::address_of(user1);
+        let _ = signer::address_of(user2);
+        let _ = signer::address_of(user3);
+        let _ = signer::address_of(creator);
+        
+        timestamp::update_global_time_for_test(1000);
+
+        let equipment_part_id = 1;
+        let affinity_id = 1;
+        let grade = 1;
+        equipment::add_equipment_entry(creator, 
+        string::utf8(b"Equipment Name"), 
+        string::utf8(b"Equipment Description"),
+        string::utf8(b"Equipment uri"),
+        equipment_part_id,
+        affinity_id,
+        grade,
+        100, 10, 11, 12, 50,
+        10, 5, 5, 5, 5);
+
+        omni_cache::add_equipment_to_cache(creator, 0, 0);
+
+        omni_cache::upsert_whitelist_address(creator, user1_addr, 2);
+        omni_cache::modify_special_event_struct(creator, string::utf8(b"Mint Event"),0,10000 );
+        omni_cache::unlock_cache_via_event(user1);
+        omni_cache::unlock_cache_via_event(user1);
+
+
+    }
+
+    #[test(creator = @main, user1 = @0x456, user2 = @0x678, user3= @0x789, aptos_framework = @aptos_framework)]
+    #[expected_failure(abort_code=6, location=main::omni_cache)]
+    public fun test_unlock_extra_cache_via_event(creator: &signer, user1: &signer, user2:&signer, user3:&signer, aptos_framework: &signer) {
+        admin::initialize(creator);
+        pseudorandom::init(creator);
+        gem::setup_coin(creator, user1, user2, aptos_framework);
+        gem::init_module_for_test(creator);
+        equipment::init_module_for_test(creator);
+        omni_cache::initialize(creator);
+
+        account::create_account_for_test(@aptos_framework);
+        timestamp::set_time_has_started_for_testing(aptos_framework);
+        block::initialize_for_test(aptos_framework, 5);
+        
+        let _: u64 = timestamp::now_microseconds();
+        let _ = string::utf8(b"First Mint Event");
+        let user1_addr = signer::address_of(user1);
+        let _ = signer::address_of(user2);
+        let _ = signer::address_of(user3);
+        let _ = signer::address_of(creator);
+        
+        timestamp::update_global_time_for_test(1000);
+
+        let equipment_part_id = 1;
+        let affinity_id = 1;
+        let grade = 1;
+        equipment::add_equipment_entry(creator, 
+        string::utf8(b"Equipment Name"), 
+        string::utf8(b"Equipment Description"),
+        string::utf8(b"Equipment uri"),
+        equipment_part_id,
+        affinity_id,
+        grade,
+        100, 10, 11, 12, 50,
+        10, 5, 5, 5, 5);
+
+        omni_cache::add_equipment_to_cache(creator, 0, 0);
+
+        omni_cache::upsert_whitelist_address(creator, user1_addr, 2);
+        omni_cache::modify_special_event_struct(creator, string::utf8(b"Mint Event"),0,10000 );
+        omni_cache::unlock_cache_via_event(user1);
+        omni_cache::unlock_cache_via_event(user1);
+        omni_cache::unlock_cache_via_event(user1);
+    }
+
+    #[test(creator = @main, user1 = @0x456, user2 = @0x678, user3= @0x789, aptos_framework = @aptos_framework)]
+    #[expected_failure(abort_code=8, location=main::omni_cache)]
+    public fun test_unlock_cache_via_event_past_time(creator: &signer, user1: &signer, user2:&signer, user3:&signer, aptos_framework: &signer) {
+        admin::initialize(creator);
+        pseudorandom::init(creator);
+        gem::setup_coin(creator, user1, user2, aptos_framework);
+        gem::init_module_for_test(creator);
+        equipment::init_module_for_test(creator);
+        omni_cache::initialize(creator);
+
+        account::create_account_for_test(@aptos_framework);
+        timestamp::set_time_has_started_for_testing(aptos_framework);
+        block::initialize_for_test(aptos_framework, 5);
+        
+        let _: u64 = timestamp::now_microseconds();
+        let _ = string::utf8(b"First Mint Event");
+        let user1_addr = signer::address_of(user1);
+        let _ = signer::address_of(user2);
+        let _ = signer::address_of(user3);
+        let _ = signer::address_of(creator);
+        
+        timestamp::update_global_time_for_test(1000);
+
+        let equipment_part_id = 1;
+        let affinity_id = 1;
+        let grade = 1;
+        equipment::add_equipment_entry(creator, 
+        string::utf8(b"Equipment Name"), 
+        string::utf8(b"Equipment Description"),
+        string::utf8(b"Equipment uri"),
+        equipment_part_id,
+        affinity_id,
+        grade,
+        100, 10, 11, 12, 50,
+        10, 5, 5, 5, 5);
+
+        omni_cache::add_equipment_to_cache(creator, 0, 0);
+
+        omni_cache::upsert_whitelist_address(creator, user1_addr, 2);
+        omni_cache::modify_special_event_struct(creator, string::utf8(b"Mint Event"),0,500 );
+        omni_cache::unlock_cache_via_event(user1);
+
     }
 }

@@ -8,6 +8,8 @@ module main::omni_cache{
     // use std::option;
     use std::signer;
     use aptos_framework::object::{Object};
+    use aptos_framework::timestamp;
+
    
     use std::string::{Self, String};
     // use aptos_std::string_utils::{to_string};
@@ -24,7 +26,10 @@ module main::omni_cache{
     const EINVALID_TABLE_LENGTH: u64 = 4;
     const EINVALID_PROPERTY_VALUE: u64 = 5;
     const EINVALID_BALANCE: u64 = 6;
+
     const EMAX_LEVEL: u64 = 7;
+    const EINVALID_PERIOD: u64 = 8;
+
     const EINSUFFICIENT_BALANCE: u64 = 65540;
     
     struct OmniCacheData has key {
@@ -107,14 +112,51 @@ module main::omni_cache{
     //     smart_table::add(special_events_table, table_length, special_events_info_entry);
     // }
 
-    // TODO: Check end_time > start time
-    // TODO: start time is greater than current timestamp
+  
 
     public entry fun unlock_cache(account:&signer, gem_object: Object<GemToken>) acquires OmniCacheData, SpecialEquipmentCacheData, NormalEquipmentCacheData{
         let omni_cache_data = borrow_global<OmniCacheData>(@main);
         let shards_spend = omni_cache_data.shards_to_unlock_cache;
         gem::burn_gem(account, gem_object, shards_spend);
         let account_addr = signer::address_of(account);
+
+        let normal_equipment_weight = omni_cache_data.normal_equipment_weight;
+        let special_equipment_weight = omni_cache_data.special_equipment_weight;
+
+        let random_number = pseudorandom::rand_u64_range(&account_addr, 1, normal_equipment_weight + special_equipment_weight + 1);
+        if (random_number <= normal_equipment_weight){
+            let normal_equipment_cache_table = &borrow_global<NormalEquipmentCacheData>(@main).table;
+            let normal_equipment_cache_table_length:u64 = aptos_std::smart_table::length(normal_equipment_cache_table);
+            let row_id = pseudorandom::rand_u64_range(&account_addr, 0, normal_equipment_cache_table_length);
+            let random_equipment_id:u64 = *smart_table::borrow(normal_equipment_cache_table, row_id);
+            equipment::mint_equipment(account, random_equipment_id);
+        } else{
+            let special_equipment_cache_table = &borrow_global<SpecialEquipmentCacheData>(@main).table;
+            let special_equipment_cache_table_length:u64 = aptos_std::smart_table::length(special_equipment_cache_table);
+            let row_id = pseudorandom::rand_u64_range(&account_addr, 0, special_equipment_cache_table_length);
+            let random_equipment_id:u64 = *smart_table::borrow(special_equipment_cache_table, row_id);
+            equipment::mint_equipment(account, random_equipment_id);
+        }
+    }
+
+
+    public entry fun unlock_cache_via_event(account:&signer) acquires OmniCacheData, SpecialEquipmentCacheData, NormalEquipmentCacheData, SpecialEventsInfoEntry{
+        let omni_cache_data = borrow_global<OmniCacheData>(@main);
+        
+        let account_addr = signer::address_of(account);
+        let amount_available_to_mint = get_special_event_struct_amount(account_addr);
+        assert!(amount_available_to_mint > 0, EINVALID_BALANCE);
+        
+
+        let (_, start_time, end_time) = get_special_event_struct_details();
+        let current_timestamp: u64 = timestamp::now_microseconds();
+
+        assert!(current_timestamp >= start_time, EINVALID_PERIOD);
+        assert!(current_timestamp <= end_time, EINVALID_PERIOD);
+        
+        let special_events_info_entry = borrow_global_mut<SpecialEventsInfoEntry>(@main);
+        
+        simple_map::upsert(&mut special_events_info_entry.whitelist_map, account_addr, amount_available_to_mint - 1);
 
         let normal_equipment_weight = omni_cache_data.normal_equipment_weight;
         let special_equipment_weight = omni_cache_data.special_equipment_weight;
@@ -155,7 +197,7 @@ module main::omni_cache{
     public entry fun modify_special_event_struct(account:&signer, name: String, start_time:u64, end_time:u64) acquires SpecialEventsInfoEntry{
         let account_addr = signer::address_of(account);
         admin::assert_is_admin(account_addr);
-
+        assert!(end_time > start_time, EINVALID_PERIOD);
         let special_events_info_entry = borrow_global_mut<SpecialEventsInfoEntry>(@main);
         special_events_info_entry.name = name;
         special_events_info_entry.start_time = start_time;
@@ -253,6 +295,7 @@ module main::omni_cache{
         let special_events_info_entry = borrow_global<SpecialEventsInfoEntry>(@main);
         (special_events_info_entry.name, special_events_info_entry.start_time, special_events_info_entry.end_time)
     }
+
 
     // ANCHOR Test Functions
     #[test_only]
