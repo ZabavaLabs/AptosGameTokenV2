@@ -21,6 +21,7 @@ module main::equipment{
     use main::gem::{Self, GemToken};
 
     use main::admin::{Self, ENOT_ADMIN};
+    use main::omni_cache;
 
     // use std::debug::print;
     // use std::vector;
@@ -33,6 +34,7 @@ module main::equipment{
     const EMAX_LEVEL: u64 = 7;
     const EINSUFFICIENT_BALANCE: u64 = 65540;
     
+    friend omni_cache;
 
     struct GameData has key {
         max_equipment_level: u64
@@ -157,7 +159,7 @@ module main::equipment{
         );
     }
 
-    public entry fun mint_equipment(user: &signer, equipment_id: u64) acquires CollectionCapability, EquipmentInfo {
+    public(friend) fun mint_equipment(user: &signer, equipment_id: u64) acquires CollectionCapability, EquipmentInfo {
         assert!(equipment_id_exists(equipment_id), ECHAR_ID_NOT_FOUND);
         let equipment_info_entry = get_equipment_info_entry(equipment_id);        
         let level = 1;
