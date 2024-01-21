@@ -12,7 +12,7 @@ module main::eigen_shard_test {
     use std::error;
     use std::option;
     use std::signer;
-    use std::string::{Self, String};
+    use std::string::{Self};
 
    
 

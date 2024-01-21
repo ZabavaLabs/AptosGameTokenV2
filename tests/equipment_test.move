@@ -1,29 +1,24 @@
 module main::equipment_test{
 
-    use aptos_framework::account::{Self, SignerCapability};
-    use aptos_framework::object::{Self, Object};
-    use aptos_std::smart_table::{Self, SmartTable};
+    use aptos_framework::object::{Self};
 
     use aptos_token_objects::collection;
-    use aptos_token_objects::token::{Self, Token};
-    use aptos_token_objects::royalty::{Self, Royalty};
-    use aptos_token_objects::property_map;
+    use aptos_token_objects::property_map::{Self};
 
     // use aptos_framework::fungible_asset::{Self, Metadata};
     // use aptos_framework::primary_fungible_store;
 
     // use std::error;
     use std::option;
-    use std::signer;
+    use std::signer::{Self};
     // use std::signer::address_of;
-    use std::string::{Self, String};
+    use std::string::{Self};
     // use aptos_std::string_utils::{to_string};
 
     use main::eigen_shard::{Self, EigenShardCapability};
 
     use main::admin::{Self, ENOT_ADMIN};
-    use main::omni_cache;
-    use main::equipment;
+    use main::equipment::{Self};
     // use std::debug::print;
     // use std::vector;
 
