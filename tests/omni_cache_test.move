@@ -23,7 +23,7 @@ module main::omni_cache_test{
     // use aptos_std::string_utils::{to_string};
 
 
-    use main::gem::{Self, GemToken};
+    use main::eigen_shard::{Self, EigenShardCapability};
     use main::omni_cache;
     use main::admin;
     use main::pseudorandom::{Self};
@@ -103,9 +103,9 @@ module main::omni_cache_test{
     public fun test_unlock_cache_no_equipment_added(creator: &signer, user1: &signer, user2:&signer, user3:&signer, aptos_framework: &signer) {
         admin::initialize_for_test(creator);
         pseudorandom::initialize_for_test(creator);
-        gem::setup_coin(creator, user1, user2, aptos_framework);
-        gem::init_module_for_test(creator);
-        equipment::init_module_for_test(creator);
+        eigen_shard::setup_coin(creator, user1, user2, aptos_framework);
+        eigen_shard::initialize_for_test(creator);
+        equipment::initialize_for_test(creator);
         omni_cache::initialize_for_test(creator);
 
         account::create_account_for_test(@aptos_framework);
@@ -122,10 +122,10 @@ module main::omni_cache_test{
         timestamp::update_global_time_for_test(1000);
 
 
-        gem::mint_gem(creator,10);
-        let gem_token = object::address_to_object<GemToken>(gem::gem_token_address());
+        eigen_shard::mint_shard(creator,10);
+        let shard_token = object::address_to_object<EigenShardCapability>(eigen_shard::shard_token_address());
         
-        omni_cache::unlock_cache(creator, gem_token);
+        omni_cache::unlock_cache(creator, shard_token);
    
     }
 
@@ -133,9 +133,9 @@ module main::omni_cache_test{
     public fun test_unlock_cache(creator: &signer, user1: &signer, user2:&signer, user3:&signer, aptos_framework: &signer) {
         admin::initialize_for_test(creator);
         pseudorandom::initialize_for_test(creator);
-        gem::setup_coin(creator, user1, user2, aptos_framework);
-        gem::init_module_for_test(creator);
-        equipment::init_module_for_test(creator);
+        eigen_shard::setup_coin(creator, user1, user2, aptos_framework);
+        eigen_shard::initialize_for_test(creator);
+        equipment::initialize_for_test(creator);
         omni_cache::initialize_for_test(creator);
 
         account::create_account_for_test(@aptos_framework);
@@ -151,8 +151,8 @@ module main::omni_cache_test{
         timestamp::update_global_time_for_test(1000);
 
 
-        gem::mint_gem(user1,30);
-        let gem_token = object::address_to_object<GemToken>(gem::gem_token_address());
+        eigen_shard::mint_shard(user1,30);
+        let shard_token = object::address_to_object<EigenShardCapability>(eigen_shard::shard_token_address());
         
         let equipment_part_id = 1;
         let affinity_id = 1;
@@ -191,22 +191,22 @@ module main::omni_cache_test{
         omni_cache::add_equipment_to_cache(creator, 0, 1);
         omni_cache::add_equipment_to_cache(creator, 0, 2);
 
-        omni_cache::unlock_cache(user1, gem_token);
-        omni_cache::unlock_cache(user1, gem_token);
-        omni_cache::unlock_cache(user1, gem_token);
+        omni_cache::unlock_cache(user1, shard_token);
+        omni_cache::unlock_cache(user1, shard_token);
+        omni_cache::unlock_cache(user1, shard_token);
 
-        assert!(gem::gem_balance(user1_addr, gem_token) == 24, 0);
+        assert!(eigen_shard::shard_balance(user1_addr, shard_token) == 24, 0);
 
     }
 
     #[test(creator = @main, user1 = @0x456, user2 = @0x678, user3= @0x789, aptos_framework = @aptos_framework)]
-    #[expected_failure(abort_code = 9, location = main::gem)]
-    public fun test_unlock_cache_insufficient_gem(creator: &signer, user1: &signer, user2:&signer, user3:&signer, aptos_framework: &signer) {
+    #[expected_failure(abort_code = 9, location = main::eigen_shard)]
+    public fun test_unlock_cache_insufficient_shard(creator: &signer, user1: &signer, user2:&signer, user3:&signer, aptos_framework: &signer) {
         admin::initialize_for_test(creator);
         pseudorandom::initialize_for_test(creator);
-        gem::setup_coin(creator, user1, user2, aptos_framework);
-        gem::init_module_for_test(creator);
-        equipment::init_module_for_test(creator);
+        eigen_shard::setup_coin(creator, user1, user2, aptos_framework);
+        eigen_shard::initialize_for_test(creator);
+        equipment::initialize_for_test(creator);
         omni_cache::initialize_for_test(creator);
 
         account::create_account_for_test(@aptos_framework);
@@ -223,8 +223,8 @@ module main::omni_cache_test{
         timestamp::update_global_time_for_test(1000);
 
 
-        gem::mint_gem(user1, 2);
-        let gem_token = object::address_to_object<GemToken>(gem::gem_token_address());
+        eigen_shard::mint_shard(user1, 2);
+        let shard_token = object::address_to_object<EigenShardCapability>(eigen_shard::shard_token_address());
         
         let equipment_part_id = 1;
         let affinity_id = 1;
@@ -240,8 +240,8 @@ module main::omni_cache_test{
         10, 5, 5, 5, 5);
 
         omni_cache::add_equipment_to_cache(creator, 0, 0);
-        omni_cache::unlock_cache(user1, gem_token);
-        omni_cache::unlock_cache(user1, gem_token);
+        omni_cache::unlock_cache(user1, shard_token);
+        omni_cache::unlock_cache(user1, shard_token);
 
     }
 
@@ -249,9 +249,9 @@ module main::omni_cache_test{
     public fun test_unlock_cache_via_event(creator: &signer, user1: &signer, user2:&signer, user3:&signer, aptos_framework: &signer) {
         admin::initialize_for_test(creator);
         pseudorandom::initialize_for_test(creator);
-        gem::setup_coin(creator, user1, user2, aptos_framework);
-        gem::init_module_for_test(creator);
-        equipment::init_module_for_test(creator);
+        eigen_shard::setup_coin(creator, user1, user2, aptos_framework);
+        eigen_shard::initialize_for_test(creator);
+        equipment::initialize_for_test(creator);
         omni_cache::initialize_for_test(creator);
 
         account::create_account_for_test(@aptos_framework);
@@ -295,9 +295,9 @@ module main::omni_cache_test{
     public fun test_unlock_extra_cache_via_event(creator: &signer, user1: &signer, user2:&signer, user3:&signer, aptos_framework: &signer) {
         admin::initialize_for_test(creator);
         pseudorandom::initialize_for_test(creator);
-        gem::setup_coin(creator, user1, user2, aptos_framework);
-        gem::init_module_for_test(creator);
-        equipment::init_module_for_test(creator);
+        eigen_shard::setup_coin(creator, user1, user2, aptos_framework);
+        eigen_shard::initialize_for_test(creator);
+        equipment::initialize_for_test(creator);
         omni_cache::initialize_for_test(creator);
 
         account::create_account_for_test(@aptos_framework);
@@ -340,9 +340,9 @@ module main::omni_cache_test{
     public fun test_unlock_cache_via_event_past_time(creator: &signer, user1: &signer, user2:&signer, user3:&signer, aptos_framework: &signer) {
         admin::initialize_for_test(creator);
         pseudorandom::initialize_for_test(creator);
-        gem::setup_coin(creator, user1, user2, aptos_framework);
-        gem::init_module_for_test(creator);
-        equipment::init_module_for_test(creator);
+        eigen_shard::setup_coin(creator, user1, user2, aptos_framework);
+        eigen_shard::initialize_for_test(creator);
+        equipment::initialize_for_test(creator);
         omni_cache::initialize_for_test(creator);
 
         account::create_account_for_test(@aptos_framework);

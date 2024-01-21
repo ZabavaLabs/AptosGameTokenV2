@@ -14,7 +14,7 @@ module main::omni_cache{
     use std::string::{Self, String};
     // use aptos_std::string_utils::{to_string};
 
-    use main::gem::{Self, GemToken};
+    use main::eigen_shard::{Self, EigenShardCapability};
     use main::admin::{Self};
     use main::pseudorandom;
     use main::equipment;
@@ -114,10 +114,10 @@ module main::omni_cache{
 
   
 
-    public entry fun unlock_cache(account:&signer, gem_object: Object<GemToken>) acquires OmniCacheData, SpecialEquipmentCacheData, NormalEquipmentCacheData{
+    public entry fun unlock_cache(account:&signer, shard_object: Object<EigenShardCapability>) acquires OmniCacheData, SpecialEquipmentCacheData, NormalEquipmentCacheData{
         let omni_cache_data = borrow_global<OmniCacheData>(@main);
         let shards_spend = omni_cache_data.shards_to_unlock_cache;
-        gem::burn_gem(account, gem_object, shards_spend);
+        eigen_shard::burn_shard(account, shard_object, shards_spend);
         let account_addr = signer::address_of(account);
 
         let normal_equipment_weight = omni_cache_data.normal_equipment_weight;

@@ -19,7 +19,7 @@ module main::equipment{
     use std::string::{Self, String};
     // use aptos_std::string_utils::{to_string};
 
-    use main::gem::{Self, GemToken};
+    use main::eigen_shard::{Self, EigenShardCapability};
 
     use main::admin::{Self, ENOT_ADMIN};
     use main::omni_cache;
@@ -315,9 +315,9 @@ module main::equipment{
         object::address_to_object(signer::address_of(&token_signer))
     }
    
-    public entry fun upgrade_equipment(from: &signer, equipment_object: Object<EquipmentCapability>, gem_object: Object<GemToken>, amount: u64) acquires EquipmentCapability, GameData {
+    public entry fun upgrade_equipment(from: &signer, equipment_object: Object<EquipmentCapability>, shard_object: Object<EigenShardCapability>, amount: u64) acquires EquipmentCapability, GameData {
         assert!(object::is_owner(equipment_object, signer::address_of(from)), ENOT_OWNER);
-        gem::burn_gem(from, gem_object, amount);
+        eigen_shard::burn_shard(from, shard_object, amount);
         let equipment_token_address = object::object_address(&equipment_object);
         let equipment = borrow_global_mut<EquipmentCapability>(equipment_token_address);
         // Gets `property_mutator_ref` to update the attack point in the property map.
@@ -427,7 +427,7 @@ module main::equipment{
     // TODO: Viewing Function of properties of object
     // TODO: Test if properties of minted equipment is the same as that stored in table.
     #[test(creator = @main)]
-    public fun init_module_for_test(creator: &signer) {
+    public fun initialize_for_test(creator: &signer) {
         init_module(creator);
     }
 
@@ -601,8 +601,8 @@ module main::equipment{
         init_module(creator);
         admin::initialize_for_test(creator);
 
-        gem::setup_coin(creator, user1, user2, aptos_framework);
-        gem::init_module_for_test(creator);
+        eigen_shard::setup_coin(creator, user1, user2, aptos_framework);
+        eigen_shard::initialize_for_test(creator);
         let equipment_part_id = 1;
         let affinity_id = 1;
         let grade = 1;
@@ -619,17 +619,17 @@ module main::equipment{
             10, 5, 5, 5, 5);
 
         let user1_addr = signer::address_of(user1);
-        gem::mint_gem(user1, 10);
+        eigen_shard::mint_shard(user1, 10);
 
 
-        let gem_token = object::address_to_object<GemToken>(gem::gem_token_address());
-        let gem_balance = gem::gem_balance(user1_addr, gem_token);
+        let shard_token = object::address_to_object<EigenShardCapability>(eigen_shard::shard_token_address());
+        let shard_balance = eigen_shard::shard_balance(user1_addr, shard_token);
 
-        assert!(gem_balance == 10, 0);
+        assert!(shard_balance == 10, 0);
 
-        upgrade_equipment(user1, char1, gem_token , 6);
+        upgrade_equipment(user1, char1, shard_token , 6);
 
-        assert!(gem::gem_balance(user1_addr, gem_token) == 4, EINVALID_BALANCE);
+        assert!(eigen_shard::shard_balance(user1_addr, shard_token) == 4, EINVALID_BALANCE);
 
         assert!(property_map::read_u64(&char1, &string::utf8(b"LEVEL"))==7, EINVALID_PROPERTY_VALUE);
         assert!(property_map::read_u64(&char1, &string::utf8(b"GROWTH_HP"))==10, EINVALID_PROPERTY_VALUE);
@@ -647,8 +647,8 @@ module main::equipment{
         init_module(creator);
         admin::initialize_for_test(creator);
 
-        gem::setup_coin(creator, user1, user2, aptos_framework);
-        gem::init_module_for_test(creator);
+        eigen_shard::setup_coin(creator, user1, user2, aptos_framework);
+        eigen_shard::initialize_for_test(creator);
         let equipment_part_id = 1;
         let affinity_id = 1;
         let grade = 1;
@@ -665,16 +665,16 @@ module main::equipment{
             10, 5, 6, 7, 8);
 
         let user1_addr = signer::address_of(user1);
-        gem::mint_gem(user1, 20);
+        eigen_shard::mint_shard(user1, 20);
 
 
-        let gem_token = object::address_to_object<GemToken>(gem::gem_token_address());
+        let shard_token = object::address_to_object<EigenShardCapability>(eigen_shard::shard_token_address());
 
-        assert!(gem::gem_balance(user1_addr, gem_token) == 20, 0);
+        assert!(eigen_shard::shard_balance(user1_addr, shard_token) == 20, 0);
 
-        upgrade_equipment(user1, char1, gem_token , 1);
+        upgrade_equipment(user1, char1, shard_token , 1);
 
-        assert!(gem::gem_balance(user1_addr, gem_token) == 19, EINVALID_BALANCE);
+        assert!(eigen_shard::shard_balance(user1_addr, shard_token) == 19, EINVALID_BALANCE);
 
         assert!(property_map::read_u64(&char1, &string::utf8(b"LEVEL"))==2, EINVALID_PROPERTY_VALUE);
         assert!(property_map::read_u64(&char1, &string::utf8(b"HP"))==110, EINVALID_PROPERTY_VALUE);
@@ -683,7 +683,7 @@ module main::equipment{
         assert!(property_map::read_u64(&char1, &string::utf8(b"ATK_SPD"))==19, EINVALID_PROPERTY_VALUE);
         assert!(property_map::read_u64(&char1, &string::utf8(b"MV_SPD"))==58, EINVALID_PROPERTY_VALUE);
 
-        upgrade_equipment(user1, char1, gem_token , 2);
+        upgrade_equipment(user1, char1, shard_token , 2);
 
         assert!(property_map::read_u64(&char1, &string::utf8(b"LEVEL"))==4, EINVALID_PROPERTY_VALUE);
         assert!(property_map::read_u64(&char1, &string::utf8(b"HP"))==130, EINVALID_PROPERTY_VALUE);
@@ -702,8 +702,8 @@ module main::equipment{
         init_module(creator);
         admin::initialize_for_test(creator);
 
-        gem::setup_coin(creator, user1, user2, aptos_framework);
-        gem::init_module_for_test(creator);
+        eigen_shard::setup_coin(creator, user1, user2, aptos_framework);
+        eigen_shard::initialize_for_test(creator);
         let equipment_part_id = 1;
         let affinity_id = 1;
         let grade = 1;
@@ -719,11 +719,11 @@ module main::equipment{
             100, 10, 11, 12, 50,
             10, 5, 5, 5, 5);
 
-        gem::mint_gem(user1, 10);
+        eigen_shard::mint_shard(user1, 10);
 
-        let gem_token = object::address_to_object<GemToken>(gem::gem_token_address());
+        let shard_token = object::address_to_object<EigenShardCapability>(eigen_shard::shard_token_address());
 
-        upgrade_equipment(user2, char1, gem_token , 1);
+        upgrade_equipment(user2, char1, shard_token , 1);
 
     }
 
@@ -733,8 +733,8 @@ module main::equipment{
         init_module(creator);
         admin::initialize_for_test(creator);
 
-        gem::setup_coin(creator, user1, user2, aptos_framework);
-        gem::init_module_for_test(creator);
+        eigen_shard::setup_coin(creator, user1, user2, aptos_framework);
+        eigen_shard::initialize_for_test(creator);
         let equipment_part_id = 1;
         let affinity_id = 1;
         let grade = 1;
@@ -750,11 +750,11 @@ module main::equipment{
             100, 10, 11, 12, 50,
             10, 5, 5, 5, 5);
 
-        gem::mint_gem(user1, 100);
+        eigen_shard::mint_shard(user1, 100);
 
-        let gem_token = object::address_to_object<GemToken>(gem::gem_token_address());
+        let shard_token = object::address_to_object<EigenShardCapability>(eigen_shard::shard_token_address());
 
-        upgrade_equipment(user1, char1, gem_token , 49);
+        upgrade_equipment(user1, char1, shard_token , 49);
     }
 
     #[test(creator = @main, user1 = @0x456, user2 = @0x789, aptos_framework = @aptos_framework)]
@@ -764,8 +764,8 @@ module main::equipment{
         init_module(creator);
         admin::initialize_for_test(creator);
 
-        gem::setup_coin(creator, user1, user2, aptos_framework);
-        gem::init_module_for_test(creator);
+        eigen_shard::setup_coin(creator, user1, user2, aptos_framework);
+        eigen_shard::initialize_for_test(creator);
         let equipment_part_id = 1;
         let affinity_id = 1;
         let grade = 1;
@@ -781,11 +781,11 @@ module main::equipment{
             100, 10, 11, 12, 50,
             10, 5, 5, 5, 5);
 
-        gem::mint_gem(user1, 100);
+        eigen_shard::mint_shard(user1, 100);
 
-        let gem_token = object::address_to_object<GemToken>(gem::gem_token_address());
+        let shard_token = object::address_to_object<EigenShardCapability>(eigen_shard::shard_token_address());
 
-        upgrade_equipment(user1, char1, gem_token , 50);
+        upgrade_equipment(user1, char1, shard_token , 50);
     }
 
     #[test(creator = @main, user1 = @0x456, user2 = @0x789, aptos_framework = @aptos_framework)]
@@ -794,8 +794,8 @@ module main::equipment{
         init_module(creator);
         admin::initialize_for_test(creator);
 
-        gem::setup_coin(creator, user1, user2, aptos_framework);
-        gem::init_module_for_test(creator);
+        eigen_shard::setup_coin(creator, user1, user2, aptos_framework);
+        eigen_shard::initialize_for_test(creator);
         let equipment_part_id = 1;
         let affinity_id = 1;
         let grade = 1;
@@ -812,12 +812,12 @@ module main::equipment{
             10, 5, 5, 5, 5);
 
         let user1_addr = signer::address_of(user1);
-        gem::mint_gem(user1, 100);
+        eigen_shard::mint_shard(user1, 100);
 
-        let gem_token = object::address_to_object<GemToken>(gem::gem_token_address());
-        let _ = gem::gem_balance(user1_addr, gem_token);
+        let shard_token = object::address_to_object<EigenShardCapability>(eigen_shard::shard_token_address());
+        let _ = eigen_shard::shard_balance(user1_addr, shard_token);
 
         edit_max_weapon_level(creator, 60);
-        upgrade_equipment(user1, char1, gem_token , 55);
+        upgrade_equipment(user1, char1, shard_token , 55);
     }
 }
