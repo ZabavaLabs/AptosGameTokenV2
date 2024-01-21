@@ -36,30 +36,13 @@ module main::equipment{
     const EINSUFFICIENT_BALANCE: u64 = 65540;
     
     friend omni_cache;
+    // friend equipment_test;
 
-    struct GameData has key {
+    struct  EquipmentData has key {
         max_equipment_level: u64
     }
 
     struct EquipmentCapability has key {
-        // name: String,
-        // description: String,
-        // uri: String,
-        // equipment_id: u64,
-        // equipment_part_id: u64,
-        // affinity_id: u64,
-        // grade:u64,
-        // level: u64,
-        // hp:u64,
-        // atk:u64,
-        // def:u64,
-        // atk_spd:u64,
-        // mv_spd:u64,
-        // growth_hp:u64,
-        // growth_atk:u64,
-        // growth_def:u64,
-        // growth_atk_spd:u64,
-        // growth_mv_spd:u64,
         mutator_ref: token::MutatorRef,
         burn_ref: token::BurnRef,
         property_mutator_ref: property_map::MutatorRef,
@@ -131,17 +114,17 @@ module main::equipment{
         };
         move_to(account, equipment_info);
 
-        let gameData = GameData{
+        let gameData =  EquipmentData{
             max_equipment_level: 50
         };
 
         move_to(account, gameData);
     }
 
-    public entry fun edit_max_weapon_level(caller: &signer, new_max_level: u64) acquires GameData {
+    public entry fun edit_max_weapon_level(caller: &signer, new_max_level: u64) acquires  EquipmentData {
         let caller_address = signer::address_of(caller);
         admin::assert_is_admin(caller_address);
-        let game_data = borrow_global_mut<GameData>(@main);
+        let game_data = borrow_global_mut< EquipmentData>(@main);
         game_data.max_equipment_level = new_max_level;
     }
 
@@ -315,7 +298,7 @@ module main::equipment{
         object::address_to_object(signer::address_of(&token_signer))
     }
    
-    public entry fun upgrade_equipment(from: &signer, equipment_object: Object<EquipmentCapability>, shard_object: Object<EigenShardCapability>, amount: u64) acquires EquipmentCapability, GameData {
+    public entry fun upgrade_equipment(from: &signer, equipment_object: Object<EquipmentCapability>, shard_object: Object<EigenShardCapability>, amount: u64) acquires EquipmentCapability,  EquipmentData {
         assert!(object::is_owner(equipment_object, signer::address_of(from)), ENOT_OWNER);
         eigen_shard::burn_shard(from, shard_object, amount);
         let equipment_token_address = object::object_address(&equipment_object);
@@ -326,7 +309,7 @@ module main::equipment{
         let current_lvl = property_map::read_u64(&equipment_object, &string::utf8(b"LEVEL"));
 
         // Prevents upgrading beyond a certain level.
-        let game_data = borrow_global<GameData>(@main);
+        let game_data = borrow_global< EquipmentData>(@main);
         assert!( current_lvl + amount <= game_data.max_equipment_level, EMAX_LEVEL);
 
         let current_hp = property_map::read_u64(&equipment_object, &string::utf8(b"HP"));
@@ -431,393 +414,33 @@ module main::equipment{
         init_module(creator);
     }
 
-    #[test(creator = @main)]
-    public fun test_equipment_addition_to_table(creator: &signer) acquires EquipmentInfo {
-        init_module(creator);
-        admin::initialize_for_test(creator);
-        let equipment_part_id = 1;
-        let affinity_id = 1;
-        let grade = 1;
-        add_equipment_entry(creator, 
-        string::utf8(b"Equipment Name"), 
-        string::utf8(b"Equipment Description"),
-        string::utf8(b"Equipment uri"),
-        equipment_part_id,
-        affinity_id,
-        grade,
-        100, 10, 11, 12, 50,
-        10, 5, 5, 5, 5);
-
-        add_equipment_entry(creator, 
-        string::utf8(b"Equipment Name"), 
-        string::utf8(b"Equipment Description"),
-        string::utf8(b"Equipment uri"),
-        equipment_part_id,
-        affinity_id,
-        grade,
-        100, 10, 11, 12, 50,
-        10, 5, 5, 5, 5);
-        assert!(get_equipment_table_length()==2, EINVALID_TABLE_LENGTH)
+    #[test_only]
+    public fun create_equipment_for_test(
+        user: &signer, 
+        equipment_id: u64, token_name: String, 
+        token_description: String, token_uri: String, 
+        equipment_part_id: u64, affinity_id: u64,
+        grade: u64, level:u64,
+        hp: u64, atk: u64, def: u64,
+        atk_spd: u64, mv_spd: u64,
+        growth_hp: u64, growth_atk: u64, growth_def: u64,
+        growth_atk_spd: u64, growth_mv_spd: u64
+    ): Object<EquipmentCapability> acquires CollectionCapability{
+        create_equipment(
+        user, 
+        equipment_id, token_name,
+        token_description, token_uri, 
+        equipment_part_id, affinity_id,
+        grade, level,
+        hp, atk, def,
+        atk_spd, mv_spd,
+        growth_hp, growth_atk, growth_def,
+        growth_atk_spd, growth_mv_spd)
+    }
+ 
+    #[test_only]
+    public fun mint_equipment_for_test(user: &signer, equipment_id: u64) acquires CollectionCapability, EquipmentInfo {
+        mint_equipment(user,equipment_id);
     }
 
-    #[test(creator = @main, user1 = @0x456 )]
-    #[expected_failure(abort_code = ENOT_ADMIN, location = main::admin)]
-    public fun test_add_equipment_by_others(creator: &signer, user1: &signer) acquires EquipmentInfo {
-        init_module(creator);
-        admin::initialize_for_test(creator);
-        let equipment_part_id = 1;
-        let affinity_id = 1;
-        let grade = 1;
-        add_equipment_entry(user1, 
-        string::utf8(b"Equipment Name"), 
-        string::utf8(b"Equipment Description"),
-        string::utf8(b"Equipment uri"),
-        equipment_part_id,
-        affinity_id,
-        grade,
-        100, 10, 11, 12, 50,
-        10, 5, 5, 5, 5);
-    }
-
-    #[test(creator = @main, user1 = @0x456 )]
-    public fun test_edit_admin(creator: &signer, user1: &signer) acquires EquipmentInfo {
-        init_module(creator);
-        admin::initialize_for_test(creator);
-        let equipment_part_id = 1;
-        let affinity_id = 1;
-        let grade = 1;
-        add_equipment_entry(creator, 
-        string::utf8(b"Equipment Name"), 
-        string::utf8(b"Equipment Description"),
-        string::utf8(b"Equipment uri"),
-        equipment_part_id,
-        affinity_id,
-        grade,
-        100, 10, 11, 12, 50,
-        10, 5, 5, 5, 5);
-        admin::edit_admin(creator, signer::address_of(user1));
-        add_equipment_entry(user1, 
-        string::utf8(b"Equipment Name"), 
-        string::utf8(b"Equipment Description"),
-        string::utf8(b"Equipment uri"),
-        equipment_part_id,
-        affinity_id,
-        grade,
-        100, 10, 11, 12, 50,
-        10, 5, 5, 5, 5);
-    }
-
-    #[test(creator = @main, user1 = @0x456 )]
-    #[expected_failure(abort_code = ENOT_ADMIN)]
-    public fun test_edit_admin_2(creator: &signer, user1: &signer) acquires EquipmentInfo {
-        init_module(creator);
-        admin::initialize_for_test(creator);
-
-        let equipment_part_id = 1;
-        let affinity_id = 1;
-        let grade = 1;
-        add_equipment_entry(creator, 
-        string::utf8(b"Equipment Name"), 
-        string::utf8(b"Equipment Description"),
-        string::utf8(b"Equipment uri"),
-        equipment_part_id,
-        affinity_id,
-        grade,
-        100, 10, 11, 12, 50,
-        10, 5, 5, 5, 5);
-        admin::edit_admin(creator, signer::address_of(user1));
-        add_equipment_entry(creator, 
-        string::utf8(b"Equipment Name"), 
-        string::utf8(b"Equipment Description"),
-        string::utf8(b"Equipment uri"),
-        equipment_part_id,
-        affinity_id,
-        grade,
-        100, 10, 11, 12, 50,
-        10, 5, 5, 5, 5);
-    }
-
-    #[test(creator = @main, user1 = @0x456)]
-    public fun test_mint(creator: &signer, user1: &signer) acquires CollectionCapability, EquipmentInfo{
-   
-        init_module(creator);
-        admin::initialize_for_test(creator);
-
-        let equipment_part_id = 1;
-        let affinity_id = 1;
-        let grade = 1;
-        let level = 1;
-        add_equipment_entry(creator, 
-        string::utf8(b"Equipment Name"), 
-        string::utf8(b"Equipment Description"),
-        string::utf8(b"Equipment uri"),
-        equipment_part_id,
-        affinity_id,
-        grade,
-        100, 10, 11, 12, 50,
-        10, 5, 5, 5, 5);
-
-        mint_equipment(user1, 0);
-
-        add_equipment_entry(creator, 
-        string::utf8(b"Equipment Name"), 
-        string::utf8(b"Equipment Description"),
-        string::utf8(b"Equipment uri"),
-        equipment_part_id,
-        affinity_id,
-        grade, 
-        100, 10, 11, 12, 50,
-        10, 5, 5, 5, 5);
-
-        mint_equipment(user1, 1);
-
-        let user_1_address = signer::address_of(user1);
-
-        let char1 = create_equipment(user1, 0,  
-            string::utf8(b"Equipment Name"), 
-            string::utf8(b"Equipment Description"),
-            string::utf8(b"Equipment uri"),
-            equipment_part_id,
-            affinity_id,
-            grade, level,
-            100, 10, 11, 12, 50,
-            10, 5, 5, 5, 5);
-
-        assert!(object::is_owner(char1, user_1_address), ENOT_OWNER);
-
-
-    }
-
-    #[test(creator = @main, user1 = @0x456)]
-    #[expected_failure(abort_code=ECHAR_ID_NOT_FOUND)]
-    public fun test_mint_unlisted_char(creator: &signer, user1: &signer) acquires CollectionCapability, EquipmentInfo {
-        init_module(creator);
-        mint_equipment(user1, 1);
-    }
-
-    #[test(creator = @main, user1 = @0x456, user2 = @0x789, aptos_framework = @aptos_framework)]
-    public fun test_upgrade_equipment(creator: &signer, user1: &signer, user2: &signer, aptos_framework: &signer) acquires CollectionCapability, EquipmentCapability, GameData {
-   
-        init_module(creator);
-        admin::initialize_for_test(creator);
-
-        eigen_shard::setup_coin(creator, user1, user2, aptos_framework);
-        eigen_shard::initialize_for_test(creator);
-        let equipment_part_id = 1;
-        let affinity_id = 1;
-        let grade = 1;
-        let level = 1;
-
-        let char1 = create_equipment(user1, 0,  
-            string::utf8(b"Equipment 1 Name"), 
-            string::utf8(b"Equipment 1 Description"),
-            string::utf8(b"Equipment uri"),
-            equipment_part_id,
-            affinity_id,
-            grade, level,
-            100, 10, 11, 12, 50,
-            10, 5, 5, 5, 5);
-
-        let user1_addr = signer::address_of(user1);
-        eigen_shard::mint_shard(user1, 10);
-
-
-        let shard_token = object::address_to_object<EigenShardCapability>(eigen_shard::shard_token_address());
-        let shard_balance = eigen_shard::shard_balance(user1_addr, shard_token);
-
-        assert!(shard_balance == 10, 0);
-
-        upgrade_equipment(user1, char1, shard_token , 6);
-
-        assert!(eigen_shard::shard_balance(user1_addr, shard_token) == 4, EINVALID_BALANCE);
-
-        assert!(property_map::read_u64(&char1, &string::utf8(b"LEVEL"))==7, EINVALID_PROPERTY_VALUE);
-        assert!(property_map::read_u64(&char1, &string::utf8(b"GROWTH_HP"))==10, EINVALID_PROPERTY_VALUE);
-        assert!(property_map::read_u64(&char1, &string::utf8(b"HP"))==160, EINVALID_PROPERTY_VALUE);
-        assert!(property_map::read_u64(&char1, &string::utf8(b"ATK"))==40, EINVALID_PROPERTY_VALUE);
-        assert!(property_map::read_u64(&char1, &string::utf8(b"DEF"))==41, EINVALID_PROPERTY_VALUE);
-        assert!(property_map::read_u64(&char1, &string::utf8(b"ATK_SPD"))==42, EINVALID_PROPERTY_VALUE);
-        assert!(property_map::read_u64(&char1, &string::utf8(b"MV_SPD"))==80, EINVALID_PROPERTY_VALUE);
-
-    }
-
-    #[test(creator = @main, user1 = @0x456, user2 = @0x789, aptos_framework = @aptos_framework)]
-    public fun test_upgrade_equipment_multiple(creator: &signer, user1: &signer, user2: &signer, aptos_framework: &signer) acquires CollectionCapability, EquipmentCapability, GameData {
-   
-        init_module(creator);
-        admin::initialize_for_test(creator);
-
-        eigen_shard::setup_coin(creator, user1, user2, aptos_framework);
-        eigen_shard::initialize_for_test(creator);
-        let equipment_part_id = 1;
-        let affinity_id = 1;
-        let grade = 1;
-        let level = 1;
-
-        let char1 = create_equipment(user1, 0,  
-            string::utf8(b"Equipment Name"), 
-            string::utf8(b"Equipment 1 Description"),
-            string::utf8(b"Equipment uri"),
-            equipment_part_id,
-            affinity_id,
-            grade, level,
-            100, 10, 11, 12, 50,
-            10, 5, 6, 7, 8);
-
-        let user1_addr = signer::address_of(user1);
-        eigen_shard::mint_shard(user1, 20);
-
-
-        let shard_token = object::address_to_object<EigenShardCapability>(eigen_shard::shard_token_address());
-
-        assert!(eigen_shard::shard_balance(user1_addr, shard_token) == 20, 0);
-
-        upgrade_equipment(user1, char1, shard_token , 1);
-
-        assert!(eigen_shard::shard_balance(user1_addr, shard_token) == 19, EINVALID_BALANCE);
-
-        assert!(property_map::read_u64(&char1, &string::utf8(b"LEVEL"))==2, EINVALID_PROPERTY_VALUE);
-        assert!(property_map::read_u64(&char1, &string::utf8(b"HP"))==110, EINVALID_PROPERTY_VALUE);
-        assert!(property_map::read_u64(&char1, &string::utf8(b"ATK"))==15, EINVALID_PROPERTY_VALUE);
-        assert!(property_map::read_u64(&char1, &string::utf8(b"DEF"))==17, EINVALID_PROPERTY_VALUE);
-        assert!(property_map::read_u64(&char1, &string::utf8(b"ATK_SPD"))==19, EINVALID_PROPERTY_VALUE);
-        assert!(property_map::read_u64(&char1, &string::utf8(b"MV_SPD"))==58, EINVALID_PROPERTY_VALUE);
-
-        upgrade_equipment(user1, char1, shard_token , 2);
-
-        assert!(property_map::read_u64(&char1, &string::utf8(b"LEVEL"))==4, EINVALID_PROPERTY_VALUE);
-        assert!(property_map::read_u64(&char1, &string::utf8(b"HP"))==130, EINVALID_PROPERTY_VALUE);
-        assert!(property_map::read_u64(&char1, &string::utf8(b"ATK"))==25, EINVALID_PROPERTY_VALUE);
-        assert!(property_map::read_u64(&char1, &string::utf8(b"DEF"))==29, EINVALID_PROPERTY_VALUE);
-        assert!(property_map::read_u64(&char1, &string::utf8(b"ATK_SPD"))==33, EINVALID_PROPERTY_VALUE);
-        assert!(property_map::read_u64(&char1, &string::utf8(b"MV_SPD"))==74, EINVALID_PROPERTY_VALUE);
-
-    }
-
-
-    #[test(creator = @main, user1 = @0x456, user2 = @0x789, aptos_framework = @aptos_framework)]
-    #[expected_failure(abort_code=ENOT_OWNER)]
-    public fun test_upgrade_equipment_wrong_ownership(creator: &signer, user1: &signer, user2: &signer, aptos_framework: &signer) acquires CollectionCapability, EquipmentCapability, GameData {
-   
-        init_module(creator);
-        admin::initialize_for_test(creator);
-
-        eigen_shard::setup_coin(creator, user1, user2, aptos_framework);
-        eigen_shard::initialize_for_test(creator);
-        let equipment_part_id = 1;
-        let affinity_id = 1;
-        let grade = 1;
-        let level = 1;
-
-        let char1 = create_equipment(user1, 0,  
-            string::utf8(b"Equipment Name"), 
-            string::utf8(b"Equipment Description"),
-            string::utf8(b"Equipment Uri"),
-            equipment_part_id,
-            affinity_id,
-            grade, level,
-            100, 10, 11, 12, 50,
-            10, 5, 5, 5, 5);
-
-        eigen_shard::mint_shard(user1, 10);
-
-        let shard_token = object::address_to_object<EigenShardCapability>(eigen_shard::shard_token_address());
-
-        upgrade_equipment(user2, char1, shard_token , 1);
-
-    }
-
-    #[test(creator = @main, user1 = @0x456, user2 = @0x789, aptos_framework = @aptos_framework)]
-    public fun test_upgrade_equipment_to_max_level(creator: &signer, user1: &signer, user2: &signer, aptos_framework: &signer) acquires CollectionCapability, EquipmentCapability, GameData {
-   
-        init_module(creator);
-        admin::initialize_for_test(creator);
-
-        eigen_shard::setup_coin(creator, user1, user2, aptos_framework);
-        eigen_shard::initialize_for_test(creator);
-        let equipment_part_id = 1;
-        let affinity_id = 1;
-        let grade = 1;
-        let level = 1;
-
-        let char1 = create_equipment(user1, 0,  
-            string::utf8(b"Equipment Name"), 
-            string::utf8(b"Equipment Description"),
-            string::utf8(b"Equipment Uri"),
-            equipment_part_id,
-            affinity_id,
-            grade, level,
-            100, 10, 11, 12, 50,
-            10, 5, 5, 5, 5);
-
-        eigen_shard::mint_shard(user1, 100);
-
-        let shard_token = object::address_to_object<EigenShardCapability>(eigen_shard::shard_token_address());
-
-        upgrade_equipment(user1, char1, shard_token , 49);
-    }
-
-    #[test(creator = @main, user1 = @0x456, user2 = @0x789, aptos_framework = @aptos_framework)]
-    #[expected_failure(abort_code=EMAX_LEVEL)]
-    public fun test_upgrade_equipment_past_max_level(creator: &signer, user1: &signer, user2: &signer, aptos_framework: &signer) acquires CollectionCapability, EquipmentCapability, GameData {
-   
-        init_module(creator);
-        admin::initialize_for_test(creator);
-
-        eigen_shard::setup_coin(creator, user1, user2, aptos_framework);
-        eigen_shard::initialize_for_test(creator);
-        let equipment_part_id = 1;
-        let affinity_id = 1;
-        let grade = 1;
-        let level = 1;
-
-        let char1 = create_equipment(user1, 0,  
-            string::utf8(b"Equipment Name"), 
-            string::utf8(b"Equipment Description"),
-            string::utf8(b"Equipment Uri"),
-            equipment_part_id,
-            affinity_id,
-            grade, level,
-            100, 10, 11, 12, 50,
-            10, 5, 5, 5, 5);
-
-        eigen_shard::mint_shard(user1, 100);
-
-        let shard_token = object::address_to_object<EigenShardCapability>(eigen_shard::shard_token_address());
-
-        upgrade_equipment(user1, char1, shard_token , 50);
-    }
-
-    #[test(creator = @main, user1 = @0x456, user2 = @0x789, aptos_framework = @aptos_framework)]
-    public fun test_upgrade_equipment_change_max_level(creator: &signer, user1: &signer, user2: &signer, aptos_framework: &signer) acquires CollectionCapability, EquipmentCapability, GameData {
-   
-        init_module(creator);
-        admin::initialize_for_test(creator);
-
-        eigen_shard::setup_coin(creator, user1, user2, aptos_framework);
-        eigen_shard::initialize_for_test(creator);
-        let equipment_part_id = 1;
-        let affinity_id = 1;
-        let grade = 1;
-        let level = 1;
-
-        let char1 = create_equipment(user1, 0,  
-            string::utf8(b"Equipment Name"), 
-            string::utf8(b"Equipment Description"),
-            string::utf8(b"Equipment Uri"),
-            equipment_part_id,
-            affinity_id,
-            grade, level,
-            100, 10, 11, 12, 50,
-            10, 5, 5, 5, 5);
-
-        let user1_addr = signer::address_of(user1);
-        eigen_shard::mint_shard(user1, 100);
-
-        let shard_token = object::address_to_object<EigenShardCapability>(eigen_shard::shard_token_address());
-        let _ = eigen_shard::shard_balance(user1_addr, shard_token);
-
-        edit_max_weapon_level(creator, 60);
-        upgrade_equipment(user1, char1, shard_token , 55);
-    }
 }
