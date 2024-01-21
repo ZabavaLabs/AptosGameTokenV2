@@ -33,7 +33,7 @@ module main::pseudorandom {
     }
 
     /// Publish a `Counter` resource with value `i` under the given `root` account.
-    public entry fun init(root: &signer) {
+    fun init_module(root: &signer) {
         // "Pack" (create) a Counter resource. This is a privileged operation that
         // can only be done inside the module that declares the `Counter` resource
         assert!(signer::address_of(root) == @main, error::permission_denied(ENOT_ROOT));
@@ -133,4 +133,9 @@ module main::pseudorandom {
     public fun rand_u128_range_no_sender(low: u128, high: u128): u128 acquires Counter { rand_u128_range_with_seed(seed_no_sender(), low, high) }
     public fun rand_u64_no_sender(): u64 acquires Counter { rand_u64_with_seed(seed_no_sender()) }
     public fun rand_u64_range_no_sender(low: u64, high: u64): u64 acquires Counter { rand_u64_range_with_seed(seed_no_sender(), low, high) }
+
+    #[test_only]
+    public fun initialize_for_test(account: &signer){
+        init_module(account);
+    }
 }

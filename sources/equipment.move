@@ -433,7 +433,7 @@ module main::equipment{
     #[test(creator = @main)]
     public fun test_equipment_addition_to_table(creator: &signer) acquires EquipmentInfo {
         init_module(creator);
-        admin::initialize(creator);
+        admin::initialize_for_test(creator);
         let equipment_part_id = 1;
         let affinity_id = 1;
         let grade = 1;
@@ -463,7 +463,7 @@ module main::equipment{
     #[expected_failure(abort_code = ENOT_ADMIN, location = main::admin)]
     public fun test_add_equipment_by_others(creator: &signer, user1: &signer) acquires EquipmentInfo {
         init_module(creator);
-        admin::initialize(creator);
+        admin::initialize_for_test(creator);
         let equipment_part_id = 1;
         let affinity_id = 1;
         let grade = 1;
@@ -481,7 +481,7 @@ module main::equipment{
     #[test(creator = @main, user1 = @0x456 )]
     public fun test_edit_admin(creator: &signer, user1: &signer) acquires EquipmentInfo {
         init_module(creator);
-        admin::initialize(creator);
+        admin::initialize_for_test(creator);
         let equipment_part_id = 1;
         let affinity_id = 1;
         let grade = 1;
@@ -510,7 +510,7 @@ module main::equipment{
     #[expected_failure(abort_code = ENOT_ADMIN)]
     public fun test_edit_admin_2(creator: &signer, user1: &signer) acquires EquipmentInfo {
         init_module(creator);
-        admin::initialize(creator);
+        admin::initialize_for_test(creator);
 
         let equipment_part_id = 1;
         let affinity_id = 1;
@@ -540,7 +540,7 @@ module main::equipment{
     public fun test_mint(creator: &signer, user1: &signer) acquires CollectionCapability, EquipmentInfo{
    
         init_module(creator);
-        admin::initialize(creator);
+        admin::initialize_for_test(creator);
 
         let equipment_part_id = 1;
         let affinity_id = 1;
@@ -598,7 +598,7 @@ module main::equipment{
     public fun test_upgrade_equipment(creator: &signer, user1: &signer, user2: &signer, aptos_framework: &signer) acquires CollectionCapability, EquipmentCapability, GameData {
    
         init_module(creator);
-        admin::initialize(creator);
+        admin::initialize_for_test(creator);
 
         gem::setup_coin(creator, user1, user2, aptos_framework);
         gem::init_module_for_test(creator);
@@ -644,7 +644,7 @@ module main::equipment{
     public fun test_upgrade_equipment_multiple(creator: &signer, user1: &signer, user2: &signer, aptos_framework: &signer) acquires CollectionCapability, EquipmentCapability, GameData {
    
         init_module(creator);
-        admin::initialize(creator);
+        admin::initialize_for_test(creator);
 
         gem::setup_coin(creator, user1, user2, aptos_framework);
         gem::init_module_for_test(creator);
@@ -699,7 +699,7 @@ module main::equipment{
     public fun test_upgrade_equipment_wrong_ownership(creator: &signer, user1: &signer, user2: &signer, aptos_framework: &signer) acquires CollectionCapability, EquipmentCapability, GameData {
    
         init_module(creator);
-        admin::initialize(creator);
+        admin::initialize_for_test(creator);
 
         gem::setup_coin(creator, user1, user2, aptos_framework);
         gem::init_module_for_test(creator);
@@ -730,7 +730,7 @@ module main::equipment{
     public fun test_upgrade_equipment_to_max_level(creator: &signer, user1: &signer, user2: &signer, aptos_framework: &signer) acquires CollectionCapability, EquipmentCapability, GameData {
    
         init_module(creator);
-        admin::initialize(creator);
+        admin::initialize_for_test(creator);
 
         gem::setup_coin(creator, user1, user2, aptos_framework);
         gem::init_module_for_test(creator);
@@ -761,7 +761,7 @@ module main::equipment{
     public fun test_upgrade_equipment_past_max_level(creator: &signer, user1: &signer, user2: &signer, aptos_framework: &signer) acquires CollectionCapability, EquipmentCapability, GameData {
    
         init_module(creator);
-        admin::initialize(creator);
+        admin::initialize_for_test(creator);
 
         gem::setup_coin(creator, user1, user2, aptos_framework);
         gem::init_module_for_test(creator);
@@ -791,7 +791,7 @@ module main::equipment{
     public fun test_upgrade_equipment_change_max_level(creator: &signer, user1: &signer, user2: &signer, aptos_framework: &signer) acquires CollectionCapability, EquipmentCapability, GameData {
    
         init_module(creator);
-        admin::initialize(creator);
+        admin::initialize_for_test(creator);
 
         gem::setup_coin(creator, user1, user2, aptos_framework);
         gem::init_module_for_test(creator);

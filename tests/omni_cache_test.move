@@ -42,14 +42,14 @@ module main::omni_cache_test{
 
     #[test(creator = @main)]
     public fun initialize_omni_cache_for_test_2(creator: &signer) {
-        admin::initialize(creator);
-        omni_cache::initialize(creator);
+        admin::initialize_for_test(creator);
+        omni_cache::initialize_for_test(creator);
     }
 
     #[test(creator = @main, user1 = @0x456, user2 = @0x678, user3= @0x789, aptos_framework = @aptos_framework)]
     public fun test_event_addition_to_table(creator: &signer, user1: &signer, user2:&signer, user3:&signer, aptos_framework: &signer) {
-        admin::initialize(creator);
-        omni_cache::initialize(creator);
+        admin::initialize_for_test(creator);
+        omni_cache::initialize_for_test(creator);
         timestamp::set_time_has_started_for_testing(aptos_framework);
         let timestamp: u64 = timestamp::now_microseconds();
 
@@ -101,12 +101,12 @@ module main::omni_cache_test{
     #[test(creator = @main, user1 = @0x456, user2 = @0x678, user3= @0x789, aptos_framework = @aptos_framework)]
     #[expected_failure(abort_code = 65537, location = main::pseudorandom)]
     public fun test_unlock_cache_no_equipment_added(creator: &signer, user1: &signer, user2:&signer, user3:&signer, aptos_framework: &signer) {
-        admin::initialize(creator);
-        pseudorandom::init(creator);
+        admin::initialize_for_test(creator);
+        pseudorandom::initialize_for_test(creator);
         gem::setup_coin(creator, user1, user2, aptos_framework);
         gem::init_module_for_test(creator);
         equipment::init_module_for_test(creator);
-        omni_cache::initialize(creator);
+        omni_cache::initialize_for_test(creator);
 
         account::create_account_for_test(@aptos_framework);
         timestamp::set_time_has_started_for_testing(aptos_framework);
@@ -131,12 +131,12 @@ module main::omni_cache_test{
 
     #[test(creator = @main, user1 = @0x456, user2 = @0x678, user3= @0x789, aptos_framework = @aptos_framework)]
     public fun test_unlock_cache(creator: &signer, user1: &signer, user2:&signer, user3:&signer, aptos_framework: &signer) {
-        admin::initialize(creator);
-        pseudorandom::init(creator);
+        admin::initialize_for_test(creator);
+        pseudorandom::initialize_for_test(creator);
         gem::setup_coin(creator, user1, user2, aptos_framework);
         gem::init_module_for_test(creator);
         equipment::init_module_for_test(creator);
-        omni_cache::initialize(creator);
+        omni_cache::initialize_for_test(creator);
 
         account::create_account_for_test(@aptos_framework);
         timestamp::set_time_has_started_for_testing(aptos_framework);
@@ -202,12 +202,12 @@ module main::omni_cache_test{
     #[test(creator = @main, user1 = @0x456, user2 = @0x678, user3= @0x789, aptos_framework = @aptos_framework)]
     #[expected_failure(abort_code = 8, location = main::gem)]
     public fun test_unlock_cache_insufficient_gem(creator: &signer, user1: &signer, user2:&signer, user3:&signer, aptos_framework: &signer) {
-        admin::initialize(creator);
-        pseudorandom::init(creator);
+        admin::initialize_for_test(creator);
+        pseudorandom::initialize_for_test(creator);
         gem::setup_coin(creator, user1, user2, aptos_framework);
         gem::init_module_for_test(creator);
         equipment::init_module_for_test(creator);
-        omni_cache::initialize(creator);
+        omni_cache::initialize_for_test(creator);
 
         account::create_account_for_test(@aptos_framework);
         timestamp::set_time_has_started_for_testing(aptos_framework);
@@ -245,12 +245,12 @@ module main::omni_cache_test{
 
     #[test(creator = @main, user1 = @0x456, user2 = @0x678, user3= @0x789, aptos_framework = @aptos_framework)]
     public fun test_unlock_cache_via_event(creator: &signer, user1: &signer, user2:&signer, user3:&signer, aptos_framework: &signer) {
-        admin::initialize(creator);
-        pseudorandom::init(creator);
+        admin::initialize_for_test(creator);
+        pseudorandom::initialize_for_test(creator);
         gem::setup_coin(creator, user1, user2, aptos_framework);
         gem::init_module_for_test(creator);
         equipment::init_module_for_test(creator);
-        omni_cache::initialize(creator);
+        omni_cache::initialize_for_test(creator);
 
         account::create_account_for_test(@aptos_framework);
         timestamp::set_time_has_started_for_testing(aptos_framework);
@@ -291,12 +291,12 @@ module main::omni_cache_test{
     #[test(creator = @main, user1 = @0x456, user2 = @0x678, user3= @0x789, aptos_framework = @aptos_framework)]
     #[expected_failure(abort_code=6, location=main::omni_cache)]
     public fun test_unlock_extra_cache_via_event(creator: &signer, user1: &signer, user2:&signer, user3:&signer, aptos_framework: &signer) {
-        admin::initialize(creator);
-        pseudorandom::init(creator);
+        admin::initialize_for_test(creator);
+        pseudorandom::initialize_for_test(creator);
         gem::setup_coin(creator, user1, user2, aptos_framework);
         gem::init_module_for_test(creator);
         equipment::init_module_for_test(creator);
-        omni_cache::initialize(creator);
+        omni_cache::initialize_for_test(creator);
 
         account::create_account_for_test(@aptos_framework);
         timestamp::set_time_has_started_for_testing(aptos_framework);
@@ -336,12 +336,12 @@ module main::omni_cache_test{
     #[test(creator = @main, user1 = @0x456, user2 = @0x678, user3= @0x789, aptos_framework = @aptos_framework)]
     #[expected_failure(abort_code=8, location=main::omni_cache)]
     public fun test_unlock_cache_via_event_past_time(creator: &signer, user1: &signer, user2:&signer, user3:&signer, aptos_framework: &signer) {
-        admin::initialize(creator);
-        pseudorandom::init(creator);
+        admin::initialize_for_test(creator);
+        pseudorandom::initialize_for_test(creator);
         gem::setup_coin(creator, user1, user2, aptos_framework);
         gem::init_module_for_test(creator);
         equipment::init_module_for_test(creator);
-        omni_cache::initialize(creator);
+        omni_cache::initialize_for_test(creator);
 
         account::create_account_for_test(@aptos_framework);
         timestamp::set_time_has_started_for_testing(aptos_framework);

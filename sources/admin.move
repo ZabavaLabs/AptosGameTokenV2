@@ -75,7 +75,7 @@ module main::admin{
 
 
     #[test_only]
-    public fun initialize(account: &signer){
+    public fun initialize_for_test(account: &signer){
         init_module(account);
     }
 
