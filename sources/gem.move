@@ -106,7 +106,7 @@ module main::gem {
             company_revenue_address: signer::address_of(caller),
             buy_back_address: signer::address_of(caller),
             minimum_gem_mint_amount: 10,
-            apt_cost_per_gem: 10_000_000
+            apt_cost_per_gem: 1_000_000
         };
 
         move_to(caller, settings);
@@ -312,9 +312,14 @@ module main::gem {
         coin::register<AptosCoin>(creator);
         coin::register<AptosCoin>(user1);
         coin::register<AptosCoin>(user2);
-        coin::deposit(signer::address_of(creator), coin::mint(10_00_000_000, &mint_cap));
-        coin::deposit(signer::address_of(user1), coin::mint(10_00_000_000, &mint_cap));
-        coin::deposit(signer::address_of(user2), coin::mint(10_00_000_000, &mint_cap));
+        // coin::deposit(signer::address_of(creator), coin::mint(10_00_000_000, &mint_cap));
+        // coin::deposit(signer::address_of(user1), coin::mint(10_00_000_000, &mint_cap));
+        // coin::deposit(signer::address_of(user2), coin::mint(10_00_000_000, &mint_cap));
+
+        coin::deposit(signer::address_of(creator), coin::mint(100_000_000, &mint_cap));
+        coin::deposit(signer::address_of(user1), coin::mint(100_000_000, &mint_cap));
+        coin::deposit(signer::address_of(user2), coin::mint(100_000_000, &mint_cap));
+
 
         coin::destroy_burn_cap(burn_cap);
         coin::destroy_mint_cap(mint_cap);
@@ -360,21 +365,34 @@ module main::gem {
         let user1_addr = signer::address_of(user1);
         let user2_addr = signer::address_of(user2);
 
+        // mint_gem(user2, 50);
+        // assert!(coin::balance<AptosCoin>(signer::address_of(user2)) == 5_00_000_000, EINVALID_BALANCE);
+        // assert!(coin::balance<AptosCoin>(creator_addr) == 15_00_000_000, EINVALID_BALANCE);
+
+        // edit_buy_back_address(creator, user1_addr);
+        // mint_gem(user2, 10);
+        // assert!(coin::balance<AptosCoin>(user1_addr) == 10_50_000_000, EINVALID_BALANCE);
+        // assert!(coin::balance<AptosCoin>(creator_addr) == 15_50_000_000, EINVALID_BALANCE);
+
+        // edit_company_revenue_address(creator, user2_addr);
+        // mint_gem(user2, 10);
+        // assert!(coin::balance<AptosCoin>(user1_addr) == 11_00_000_000, EINVALID_BALANCE);
+        // assert!(coin::balance<AptosCoin>(creator_addr) == 15_50_000_000, EINVALID_BALANCE);
+        // assert!(coin::balance<AptosCoin>(user2_addr) == 3_50_000_000, EINVALID_BALANCE);
         mint_gem(user2, 50);
-        assert!(coin::balance<AptosCoin>(signer::address_of(user2)) == 5_00_000_000, EINVALID_BALANCE);
-        assert!(coin::balance<AptosCoin>(creator_addr) == 15_00_000_000, EINVALID_BALANCE);
+        assert!(coin::balance<AptosCoin>(signer::address_of(user2)) == 50_000_000, EINVALID_BALANCE);
+        assert!(coin::balance<AptosCoin>(creator_addr) == 150_000_000, EINVALID_BALANCE);
 
         edit_buy_back_address(creator, user1_addr);
         mint_gem(user2, 10);
-        assert!(coin::balance<AptosCoin>(user1_addr) == 10_50_000_000, EINVALID_BALANCE);
-        assert!(coin::balance<AptosCoin>(creator_addr) == 15_50_000_000, EINVALID_BALANCE);
+        assert!(coin::balance<AptosCoin>(user1_addr) == 105_000_000, EINVALID_BALANCE);
+        assert!(coin::balance<AptosCoin>(creator_addr) == 155_000_000, EINVALID_BALANCE);
 
         edit_company_revenue_address(creator, user2_addr);
         mint_gem(user2, 10);
-        assert!(coin::balance<AptosCoin>(user1_addr) == 11_00_000_000, EINVALID_BALANCE);
-        assert!(coin::balance<AptosCoin>(creator_addr) == 15_50_000_000, EINVALID_BALANCE);
-        assert!(coin::balance<AptosCoin>(user2_addr) == 3_50_000_000, EINVALID_BALANCE);
-
+        assert!(coin::balance<AptosCoin>(user1_addr) == 110_000_000, EINVALID_BALANCE);
+        assert!(coin::balance<AptosCoin>(creator_addr) == 155_000_000, EINVALID_BALANCE);
+        assert!(coin::balance<AptosCoin>(user2_addr) == 35_000_000, EINVALID_BALANCE);
     }
 
     #[test(creator = @main, user1 = @0x456, user2 = @0x789, aptos_framework = @aptos_framework)]

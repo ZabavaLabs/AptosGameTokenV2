@@ -74,7 +74,7 @@ module main::omni_cache{
         move_to(account,special_events_info_entry);
 
         let omni_cache_data = OmniCacheData{
-            shards_to_unlock_cache: 10,
+            shards_to_unlock_cache: 2,
             normal_equipment_weight: 100,
             special_equipment_weight: 0,
         };

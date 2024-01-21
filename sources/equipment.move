@@ -6,6 +6,7 @@ module main::equipment{
 
     use aptos_token_objects::collection;
     use aptos_token_objects::token::{Self, Token};
+    use aptos_token_objects::royalty::{Self, Royalty};
     use aptos_token_objects::property_map;
 
     // use aptos_framework::fungible_asset::{Self, Metadata};
@@ -149,12 +150,12 @@ module main::equipment{
     }
 
     fun create_equipment_collection(creator: &signer, description: String, name: String, uri: String) {
-
+        let expected_royalty = royalty::create(5_000, 100_000, @main);
         collection::create_unlimited_collection(
             creator,
             description,
             name,
-            option::none(),
+            option::some(expected_royalty),
             uri,
         );
     }

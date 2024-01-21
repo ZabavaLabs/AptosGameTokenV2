@@ -195,12 +195,12 @@ module main::omni_cache_test{
         omni_cache::unlock_cache(user1, gem_token);
         omni_cache::unlock_cache(user1, gem_token);
 
-        assert!(gem::gem_balance(user1_addr, gem_token) == 0, 0);
+        assert!(gem::gem_balance(user1_addr, gem_token) == 24, 0);
 
     }
 
     #[test(creator = @main, user1 = @0x456, user2 = @0x678, user3= @0x789, aptos_framework = @aptos_framework)]
-    #[expected_failure(abort_code = 8, location = main::gem)]
+    #[expected_failure(abort_code = 9, location = main::gem)]
     public fun test_unlock_cache_insufficient_gem(creator: &signer, user1: &signer, user2:&signer, user3:&signer, aptos_framework: &signer) {
         admin::initialize_for_test(creator);
         pseudorandom::initialize_for_test(creator);
@@ -223,7 +223,7 @@ module main::omni_cache_test{
         timestamp::update_global_time_for_test(1000);
 
 
-        gem::mint_gem(user1,5);
+        gem::mint_gem(user1, 2);
         let gem_token = object::address_to_object<GemToken>(gem::gem_token_address());
         
         let equipment_part_id = 1;
@@ -241,6 +241,8 @@ module main::omni_cache_test{
 
         omni_cache::add_equipment_to_cache(creator, 0, 0);
         omni_cache::unlock_cache(user1, gem_token);
+        omni_cache::unlock_cache(user1, gem_token);
+
     }
 
     #[test(creator = @main, user1 = @0x456, user2 = @0x678, user3= @0x789, aptos_framework = @aptos_framework)]
