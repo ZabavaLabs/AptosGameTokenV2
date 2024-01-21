@@ -177,7 +177,7 @@ module main::omni_cache{
         }
     }
 
-    public entry fun add_equipment_to_cache(account:&signer, equipment_id:u64, cache_id:u64) acquires NormalEquipmentCacheData, SpecialEquipmentCacheData{
+    public entry fun add_equipment_to_cache(account:&signer, cache_id:u64, equipment_id:u64) acquires NormalEquipmentCacheData, SpecialEquipmentCacheData{
         let account_addr = signer::address_of(account);
         admin::assert_is_admin(account_addr);
 
@@ -296,6 +296,21 @@ module main::omni_cache{
         (special_events_info_entry.name, special_events_info_entry.start_time, special_events_info_entry.end_time)
     }
 
+    #[view]
+    public fun get_equipment_id_from_cache_row_id(cache_id:u64, row_id: u64): u64 acquires SpecialEquipmentCacheData, NormalEquipmentCacheData{
+        if (cache_id == 0){
+            let normal_equipment_cache_table = &borrow_global<NormalEquipmentCacheData>(@main).table;
+            let equipment_id = *smart_table::borrow(normal_equipment_cache_table, row_id);
+            equipment_id
+        } else if( cache_id == 1){
+            let special_equipment_cache_table = &borrow_global<SpecialEquipmentCacheData>(@main).table;
+            let equipment_id = *smart_table::borrow(special_equipment_cache_table, row_id);
+            equipment_id
+        } else{
+            18_446_744_073_709_551_615
+        }
+
+    }
 
     // ANCHOR Test Functions
     #[test_only]

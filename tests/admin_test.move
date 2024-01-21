@@ -15,6 +15,4 @@ module main::admin_test{
         admin::edit_admin(creator, signer::address_of(user1));
         assert!(signer::address_of(user1)==admin::get_admin_address(),ENOT_ADMIN);
     }
-
-    
 }
