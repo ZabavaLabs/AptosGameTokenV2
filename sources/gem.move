@@ -35,26 +35,38 @@ module main::gem {
 
 
     // The caller is not the admin
-    const ENOT_ADMIN: u64 = 7;
+    const ENOT_ADMIN: u64 = 8;
     // The minimum mintable amount requirement is not met.
-    const ENOT_MINIMUM_MINT_AMOUNT: u64 = 8;
+    const ENOT_MINIMUM_MINT_AMOUNT: u64 = 9;
 
-    const ENOT_EVEN: u64 = 9;
+    const ENOT_EVEN: u64 = 10;
+
+    const EINVALID_DATA: u64 = 11;
+
 
     /// The gem collection name
-    const GEM_COLLECTION_NAME: vector<u8> = b"Undying City Gem Collection";
+    const GEM_COLLECTION_NAME: vector<u8> = b"Undying City Eigen Shard Collection";
     /// The gem collection description
-    const GEM_COLLECTION_DESCRIPTION: vector<u8> = b"The in game currency for undying city.";
+    const GEM_COLLECTION_DESCRIPTION: vector<u8> = b"This collection stores the Eigen Shard token." ;
     /// The gem collection URI
     const GEM_COLLECTION_URI: vector<u8> = b"https://gem.collection.uri";
 
-
-    const GEM_TOKEN_NAME: vector<u8> = b"Undying City Gem";
+   /// The gem token name
+    const GEM_TOKEN_NAME: vector<u8> = b"Eigen Shard";
+    const GEM_TOKEN_DESCRIPTION: vector<u8> = b"The Eigen Shard embodies the essence of construction and empowerment in the digital frontier." ;
+    const GEM_ASSET_NAME: vector<u8> = b"Eigen Shard";
+    const GEM_ASSET_SYMBOL: vector<u8> = b"ES";
+    //Point to project website or app
+    const PROJECT_URI: vector<u8> = b"https://zabavalabs.com";
+    //Point to Image
+    const PROJECT_ICON_URI: vector<u8> = b"https://zabavalabs.com";
+    const URI: vector<u8> = b"https://github.com/ZabavaLabs/AptosGameTokenV2";
 
 
     #[resource_group_member(group = aptos_framework::object::ObjectGroup)]
     // Gem Token
     struct GemToken has key {
+        mutator_ref: token::MutatorRef,
         /// Used to mutate properties
         property_mutator_ref: property_map::MutatorRef,
         /// Used to mint fungible assets.
@@ -80,13 +92,13 @@ module main::gem {
 
         create_gem_token_as_fungible_token(
             caller,
-            string::utf8(b"Gem Token Description"),
+            string::utf8(GEM_TOKEN_DESCRIPTION),
             string::utf8(GEM_TOKEN_NAME),
-            string::utf8(b"https://raw.githubusercontent.com/aptos-labs/aptos-core/main/ecosystem/typescript/sdk/examples/typescript/metadata/knight/Corn"),
-            string::utf8(b"Gem"),
-            string::utf8(b"GEM"),
-            string::utf8(b"https://raw.githubusercontent.com/aptos-labs/aptos-core/main/ecosystem/typescript/sdk/examples/typescript/metadata/knight/Corn.png"),
-            string::utf8(b"https://www.aptoslabs.com"),
+            string::utf8(URI),
+            string::utf8(GEM_ASSET_NAME),
+            string::utf8(GEM_ASSET_SYMBOL),
+            string::utf8(PROJECT_ICON_URI),
+            string::utf8(PROJECT_URI),
         );
 
         let settings = AdminData{
@@ -121,6 +133,19 @@ module main::gem {
         settings_data.buy_back_address = new_addr;
     }
  
+    public entry fun set_token_name(caller: &signer, new_name: String) acquires GemToken, AdminData {
+        let caller_address = signer::address_of(caller);
+        assert_is_admin(caller_address);
+        let gem_token_capability = borrow_global<GemToken>(gem_token_address());
+        token::set_name(&gem_token_capability.mutator_ref, new_name);
+    }
+
+    public entry fun set_token_uri(caller: &signer, new_uri: String) acquires GemToken, AdminData {
+        let caller_address = signer::address_of(caller);
+        assert_is_admin(caller_address);
+        let gem_token_capability = borrow_global<GemToken>(gem_token_address());
+        token::set_uri(&gem_token_capability.mutator_ref, new_uri);
+    }
 
     #[view]
     /// Returns the balance of the gem token of the owner
@@ -202,7 +227,7 @@ module main::gem {
     fun create_gem_token_as_fungible_token(
         creator: &signer,
         description: String,
-        name: String,
+        token_name: String,
         uri: String,
         fungible_asset_name: String,
         fungible_asset_symbol: String,
@@ -217,7 +242,7 @@ module main::gem {
             creator,
             collection,
             description,
-            name,
+            token_name,
             option::none(),
             uri,
         );
@@ -225,6 +250,8 @@ module main::gem {
         // Generates the object signer and the refs. The refs are used to manage the token.
         let object_signer = object::generate_signer(&constructor_ref);
         let property_mutator_ref = property_map::generate_mutator_ref(&constructor_ref);
+        let mutator_ref = token::generate_mutator_ref(&constructor_ref);
+
 
         let decimals = 0;
 
@@ -243,6 +270,7 @@ module main::gem {
 
         // Publishes the GemToken resource with the refs.
         let gem_token = GemToken {
+            mutator_ref,
             property_mutator_ref,
             fungible_asset_mint_ref,
             fungible_asset_burn_ref,
@@ -362,5 +390,31 @@ module main::gem {
         let gem_token = object::address_to_object<GemToken>(gem_token_address());
         assert!(gem_balance(user2_addr, gem_token) == 8, 0);
 
+    }
+
+    #[test(creator = @main, user1 = @0x456, user2 = @0x789, aptos_framework = @aptos_framework)]
+    public fun test_edit_token_name(creator: &signer, user1: &signer, user2: &signer, aptos_framework: &signer) acquires GemToken, AdminData {
+        init_module(creator);
+        setup_coin(creator, user1, user2, aptos_framework);
+
+        let creator_addr = signer::address_of(creator);
+        let user1_addr = signer::address_of(user1);
+        let user2_addr = signer::address_of(user2);
+
+        mint_gem(user2, 50);
+
+        let gem_token = object::address_to_object<GemToken>(gem_token_address());
+        assert!(token::name(gem_token)==string::utf8(GEM_TOKEN_NAME),EINVALID_DATA);
+  
+        let gem_token_capability = borrow_global<GemToken>(gem_token_address());
+        let new_name = string::utf8(b"New Token Name");
+        set_token_name(creator, new_name);
+        assert!(token::name(gem_token)==new_name,EINVALID_DATA);
+
+        assert!(token::uri(gem_token)==string::utf8(URI),EINVALID_DATA);
+        let new_uri = string::utf8(b"www.google.com");
+        set_token_uri(creator, new_uri);
+        
+        assert!(token::uri(gem_token)==new_uri,EINVALID_DATA);
     }
 }
