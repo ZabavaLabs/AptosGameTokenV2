@@ -222,6 +222,22 @@ module main::omni_cache{
         simple_map::add_all(&mut special_events_info_entry.whitelist_map, address_vector, amount_vector);
     }
 
+    public entry fun reset_cache_and_add_equipment_ids(account:&signer, cache_id:u64, row_id_vector:vector<u64>, equipment_id_vector:vector<u64>) acquires NormalEquipmentCacheData, SpecialEquipmentCacheData{
+        let account_addr = signer::address_of(account);
+        admin::assert_is_admin(account_addr);
+        if (cache_id == 0){
+            let normal_equipment_cache_table = &mut borrow_global_mut<NormalEquipmentCacheData>(@main).table;
+            smart_table::clear(normal_equipment_cache_table);
+            // assert!(smart_table::length(normal_equipment_cache_table)==0, EINVALID_TABLE_LENGTH);
+            smart_table::add_all(normal_equipment_cache_table, row_id_vector, equipment_id_vector);
+        } else if( cache_id == 1){
+            let special_equipment_cache_table = &mut borrow_global_mut<SpecialEquipmentCacheData>(@main).table;
+            smart_table::clear(special_equipment_cache_table);
+            // assert!(smart_table::length(special_equipment_cache_table)==0, EINVALID_TABLE_LENGTH);
+            smart_table::add_all(special_equipment_cache_table, row_id_vector, equipment_id_vector);
+        } 
+    }
+
     // ISSUES WITH TABLE STUFF
     // public entry fun add_whitelist_addresses(account:&signer, event_id: u64, address_vector:vector<address>, amount_vector: vector<u64>) acquires SpecialEvents, AdminData{
     //     assert_is_admin(account);
@@ -309,7 +325,20 @@ module main::omni_cache{
         } else{
             18_446_744_073_709_551_615
         }
+    }
 
+    #[view]
+    public fun get_table_length_from_cache(cache_id:u64): u64 acquires SpecialEquipmentCacheData, NormalEquipmentCacheData{
+        if (cache_id == 0){
+            let normal_equipment_cache_table = &borrow_global<NormalEquipmentCacheData>(@main).table;
+            smart_table::length(normal_equipment_cache_table)
+        } else if( cache_id == 1){
+            let special_equipment_cache_table = &borrow_global<SpecialEquipmentCacheData>(@main).table;
+            smart_table::length(special_equipment_cache_table)
+
+        } else{
+            18_446_744_073_709_551_615
+        }
     }
 
     // ANCHOR Test Functions

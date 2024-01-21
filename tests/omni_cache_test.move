@@ -132,6 +132,50 @@ module main::omni_cache_test{
     }
 
     #[test(creator = @main, user1 = @0x456, user2 = @0x678, user3= @0x789, aptos_framework = @aptos_framework)]
+    public fun test_multiple_equipment_added_to_cache(creator: &signer, user1: &signer, user2:&signer, user3:&signer, aptos_framework: &signer) {
+        admin::initialize_for_test(creator);
+        omni_cache::initialize_for_test(creator);
+        timestamp::set_time_has_started_for_testing(aptos_framework);
+        let timestamp: u64 = timestamp::now_microseconds();
+
+        let event_name = string::utf8(b"First Mint Event");
+        let user1_addr = signer::address_of(user1);
+        let user2_addr = signer::address_of(user2);
+        let user3_addr = signer::address_of(user3);
+        let creator_addr = signer::address_of(creator);
+        
+        
+        omni_cache::modify_special_event_struct(creator, event_name, timestamp, timestamp + 100_000_000);
+        omni_cache::upsert_whitelist_address(creator, signer::address_of(user1),5);
+
+        assert!(omni_cache::get_special_event_struct_amount(user1_addr)==5, EWHITELIST_AMOUNT);
+        omni_cache::upsert_whitelist_address(creator, signer::address_of(user1),10);
+        assert!(omni_cache::get_special_event_struct_amount(user1_addr)==10, EWHITELIST_AMOUNT);
+       
+        let event_name_2 = string::utf8(b"Second Mint Event");
+        let new_start_time = timestamp + 200_000_000;
+        let new_end_time = timestamp + 300_000_000;
+        
+        assert!(omni_cache::get_table_length_from_cache(0)==0, EINVALID_TABLE_LENGTH);
+        assert!(omni_cache::get_table_length_from_cache(1)==0, EINVALID_TABLE_LENGTH);
+
+        omni_cache::add_equipment_to_cache(creator,0,0);
+        omni_cache::add_equipment_to_cache(creator,0,1);
+        assert!(omni_cache::get_table_length_from_cache(0)==2, EINVALID_TABLE_LENGTH);
+
+        omni_cache::reset_cache_and_add_equipment_ids(creator, 0, vector[0,1,2,3,4], vector[0,1,2,3,4]);
+        assert!(omni_cache::get_table_length_from_cache(0)==5, EINVALID_TABLE_LENGTH);
+
+        omni_cache::add_equipment_to_cache(creator,1,0);
+        omni_cache::add_equipment_to_cache(creator,1,1);
+        assert!(omni_cache::get_table_length_from_cache(1)==2, EINVALID_TABLE_LENGTH);
+
+        omni_cache::reset_cache_and_add_equipment_ids(creator, 1, vector[0,1,2,3,4,5,6], vector[0,1,2,3,4,5,6]);
+        assert!(omni_cache::get_table_length_from_cache(1)==7, EINVALID_TABLE_LENGTH);
+
+    }
+
+    #[test(creator = @main, user1 = @0x456, user2 = @0x678, user3= @0x789, aptos_framework = @aptos_framework)]
     public fun test_unlock_cache(creator: &signer, user1: &signer, user2:&signer, user3:&signer, aptos_framework: &signer) {
         admin::initialize_for_test(creator);
         pseudorandom::initialize_for_test(creator);
