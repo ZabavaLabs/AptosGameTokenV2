@@ -84,6 +84,8 @@ module main::equipment{
     const UC_EQUIPMENT_COLLECTION_NAME: vector<u8> = b"Undying City Equipment Collection";
     const UC_EQUIPMENT_COLLECTION_DESCRIPTION: vector<u8> = b"Contains all the Undying City equipment";
     
+    const ROYALTY_ADDRESS: address = @main;
+
     // TODO: Change the equipment collection uri
     const UC_EQUIPMENT_COLLECTION_URI: vector<u8> = b"https://aptos.dev/img/nyan.jpeg";
    
@@ -133,7 +135,7 @@ module main::equipment{
     }
 
     fun create_equipment_collection(creator: &signer, description: String, name: String, uri: String) {
-        let expected_royalty = royalty::create(5_000, 100_000, @main);
+        let expected_royalty = royalty::create(5_000, 100_000, ROYALTY_ADDRESS);
         collection::create_unlimited_collection(
             creator,
             description,
