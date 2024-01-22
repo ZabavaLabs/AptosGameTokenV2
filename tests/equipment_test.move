@@ -83,7 +83,7 @@ module main::equipment_test{
     }
 
     #[test(creator = @main, user1 = @0x456 )]
-    public fun test_edit_admin(creator: &signer, user1: &signer) {
+    public fun test_set_admin(creator: &signer, user1: &signer) {
         equipment::initialize_for_test(creator);
         admin::initialize_for_test(creator);
         let equipment_part_id = 1;
@@ -98,7 +98,7 @@ module main::equipment_test{
         grade,
         100, 10, 11, 12, 50,
         10, 5, 5, 5, 5);
-        admin::edit_admin(creator, signer::address_of(user1));
+        admin::set_admin(creator, signer::address_of(user1));
         equipment::add_equipment_entry(user1, 
         string::utf8(b"Equipment Name"), 
         string::utf8(b"Equipment Description"),
@@ -112,7 +112,7 @@ module main::equipment_test{
 
     #[test(creator = @main, user1 = @0x456 )]
     #[expected_failure(abort_code = ENOT_ADMIN)]
-    public fun test_edit_admin_2(creator: &signer, user1: &signer) {
+    public fun test_set_admin_2(creator: &signer, user1: &signer) {
         equipment::initialize_for_test(creator);
         admin::initialize_for_test(creator);
 
@@ -128,7 +128,7 @@ module main::equipment_test{
         grade,
         100, 10, 11, 12, 50,
         10, 5, 5, 5, 5);
-        admin::edit_admin(creator, signer::address_of(user1));
+        admin::set_admin(creator, signer::address_of(user1));
         equipment::add_equipment_entry(creator, 
         string::utf8(b"Equipment Name"), 
         string::utf8(b"Equipment Description"),
@@ -420,7 +420,7 @@ module main::equipment_test{
         let shard_token = object::address_to_object<EigenShardCapability>(eigen_shard::shard_token_address());
         let _ = eigen_shard::shard_balance(user1_addr, shard_token);
 
-        equipment::edit_max_weapon_level(creator, 60);
+        equipment::set_max_weapon_level(creator, 60);
         equipment::upgrade_equipment(user1, char1, shard_token , 55);
     }
 }

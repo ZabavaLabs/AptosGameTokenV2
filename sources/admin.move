@@ -54,7 +54,7 @@ module main::admin{
         move_to(account, settings);
     }
 
-    public entry fun edit_admin(caller: &signer, new_admin_addr: address) acquires AdminData {
+    public entry fun set_admin(caller: &signer, new_admin_addr: address) acquires AdminData {
         let caller_address = signer::address_of(caller);
         assert_is_admin(caller_address);
         let settings_data = borrow_global_mut<AdminData>(@main);

@@ -121,7 +121,7 @@ module main::equipment{
         move_to(account, gameData);
     }
 
-    public entry fun edit_max_weapon_level(caller: &signer, new_max_level: u64) acquires  EquipmentData {
+    public entry fun set_max_weapon_level(caller: &signer, new_max_level: u64) acquires  EquipmentData {
         let caller_address = signer::address_of(caller);
         admin::assert_is_admin(caller_address);
         let game_data = borrow_global_mut< EquipmentData>(@main);

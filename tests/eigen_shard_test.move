@@ -60,7 +60,7 @@ module main::eigen_shard_test {
     const PROJECT_ICON_URI: vector<u8> = b"https://zabavalabs.com";
     const URI: vector<u8> = b"https://github.com/ZabavaLabs/AptosGameTokenV2";
 
-    use main::eigen_shard::{Self, EigenShardCapability};
+    use main::eigen_shard::{Self, EigenShardCapability, ShardCollectionCapability};
     use main::admin;
 
 
@@ -109,12 +109,12 @@ module main::eigen_shard_test {
         // assert!(coin::balance<AptosCoin>(signer::address_of(user2)) == 5_00_000_000, EINVALID_BALANCE);
         // assert!(coin::balance<AptosCoin>(creator_addr) == 15_00_000_000, EINVALID_BALANCE);
 
-        // edit_buy_back_address(creator, user1_addr);
+        // set_buy_back_address(creator, user1_addr);
         // mint_shard(user2, 10);
         // assert!(coin::balance<AptosCoin>(user1_addr) == 10_50_000_000, EINVALID_BALANCE);
         // assert!(coin::balance<AptosCoin>(creator_addr) == 15_50_000_000, EINVALID_BALANCE);
 
-        // edit_company_revenue_address(creator, user2_addr);
+        // set_company_revenue_address(creator, user2_addr);
         // mint_shard(user2, 10);
         // assert!(coin::balance<AptosCoin>(user1_addr) == 11_00_000_000, EINVALID_BALANCE);
         // assert!(coin::balance<AptosCoin>(creator_addr) == 15_50_000_000, EINVALID_BALANCE);
@@ -123,12 +123,12 @@ module main::eigen_shard_test {
         assert!(coin::balance<AptosCoin>(signer::address_of(user2)) == 50_000_000, EINVALID_BALANCE);
         assert!(coin::balance<AptosCoin>(creator_addr) == 150_000_000, EINVALID_BALANCE);
 
-        eigen_shard::edit_buy_back_address(creator, user1_addr);
+        eigen_shard::set_buy_back_address(creator, user1_addr);
         eigen_shard::mint_shard(user2, 10);
         assert!(coin::balance<AptosCoin>(user1_addr) == 105_000_000, EINVALID_BALANCE);
         assert!(coin::balance<AptosCoin>(creator_addr) == 155_000_000, EINVALID_BALANCE);
 
-        eigen_shard::edit_company_revenue_address(creator, user2_addr);
+        eigen_shard::set_company_revenue_address(creator, user2_addr);
         eigen_shard::mint_shard(user2, 10);
         assert!(coin::balance<AptosCoin>(user1_addr) == 110_000_000, EINVALID_BALANCE);
         assert!(coin::balance<AptosCoin>(creator_addr) == 155_000_000, EINVALID_BALANCE);
@@ -152,7 +152,7 @@ module main::eigen_shard_test {
     }
 
     #[test(creator = @main, user1 = @0x456, user2 = @0x789, aptos_framework = @aptos_framework)]
-    public fun test_edit_token_name (creator: &signer, user1: &signer, user2: &signer, aptos_framework: &signer) {
+    public fun test_set_token_name (creator: &signer, user1: &signer, user2: &signer, aptos_framework: &signer) {
         eigen_shard::initialize_for_test(creator);
         eigen_shard::setup_coin(creator, user1, user2, aptos_framework);
         admin::initialize_for_test(creator);
@@ -164,8 +164,8 @@ module main::eigen_shard_test {
         eigen_shard::mint_shard(user2, 50);
 
         let shard_token = object::address_to_object<EigenShardCapability>(eigen_shard::shard_token_address());
+
         assert!(token::name(shard_token)==string::utf8(EIGEN_SHARD_TOKEN_NAME),EINVALID_DATA);
-  
         let new_name = string::utf8(b"New Token Name");
         eigen_shard::set_token_name(creator, new_name);
         assert!(token::name(shard_token)==new_name,EINVALID_DATA);
@@ -173,7 +173,31 @@ module main::eigen_shard_test {
         assert!(token::uri(shard_token)==string::utf8(URI),EINVALID_DATA);
         let new_uri = string::utf8(b"www.google.com");
         eigen_shard::set_token_uri(creator, new_uri);
-        
         assert!(token::uri(shard_token)==new_uri,EINVALID_DATA);
+    }
+
+    #[test(creator = @main, user1 = @0x456, user2 = @0x789, aptos_framework = @aptos_framework)]
+    public fun test_set_collection (creator: &signer, user1: &signer, user2: &signer, aptos_framework: &signer) {
+        eigen_shard::initialize_for_test(creator);
+        eigen_shard::setup_coin(creator, user1, user2, aptos_framework);
+        admin::initialize_for_test(creator);
+
+        let creator_addr = signer::address_of(creator);
+        let user1_addr = signer::address_of(user1);
+        let user2_addr = signer::address_of(user2);
+
+        eigen_shard::mint_shard(user2, 50);
+
+        let shard_collection = object::address_to_object<ShardCollectionCapability>(eigen_shard::shard_collection_address());
+       
+        assert!(collection::uri(shard_collection)==string::utf8(EIGEN_SHARD_COLLECTION_URI), EINVALID_DATA);
+        let new_uri = string::utf8(b"https://new_google.com");
+        eigen_shard::set_collection_uri(creator, new_uri);
+        assert!(collection::uri(shard_collection)==new_uri,EINVALID_DATA);
+
+        assert!(collection::description(shard_collection)==string::utf8(EIGEN_SHARD_COLLECTION_DESCRIPTION),EINVALID_DATA);
+        let new_description = string::utf8(b"This is a new description!!!");
+        eigen_shard::set_collection_description(creator, new_description);
+        assert!(collection::description(shard_collection)==new_description,EINVALID_DATA);
     }
 }

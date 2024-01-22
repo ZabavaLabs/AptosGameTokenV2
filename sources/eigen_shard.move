@@ -59,7 +59,7 @@ module main::eigen_shard {
     const EIGEN_SHARD_ASSET_NAME: vector<u8> = b"Eigen Shard";
     const EIGEN_SHARD_ASSET_SYMBOL: vector<u8> = b"ES";
     //Point to project website or app
-    const PROJECT_URI: vector<u8> = b"https://zabavalabs.com";
+    const PROJECT_URI: vector<u8> = b"https://undying_city.zabavalabs.com";
     //Point to Image
     const PROJECT_ICON_URI: vector<u8> = b"https://zabavalabs.com";
     const URI: vector<u8> = b"https://github.com/ZabavaLabs/AptosGameTokenV2";
@@ -77,6 +77,10 @@ module main::eigen_shard {
         fungible_asset_burn_ref: fungible_asset::BurnRef,
     }
 
+    #[resource_group_member(group = aptos_framework::object::ObjectGroup)]
+    struct ShardCollectionCapability has key {
+        collection_mutator_ref: collection::MutatorRef
+    }
 
     struct EigenShardData has key {
         company_revenue_address: address,
@@ -112,14 +116,14 @@ module main::eigen_shard {
         move_to(caller, settings);
     }
 
-    public entry fun edit_company_revenue_address(caller: &signer, new_addr: address) acquires EigenShardData {
+    public entry fun set_company_revenue_address(caller: &signer, new_addr: address) acquires EigenShardData {
         let caller_address = signer::address_of(caller);
         admin::assert_is_admin(caller_address);
         let settings_data = borrow_global_mut<EigenShardData>(@main);
         settings_data.company_revenue_address = new_addr;
     }
     
-    public entry fun edit_buy_back_address(caller: &signer, new_addr: address) acquires EigenShardData {
+    public entry fun set_buy_back_address(caller: &signer, new_addr: address) acquires EigenShardData {
         let caller_address = signer::address_of(caller);
         admin::assert_is_admin(caller_address);
         let settings_data = borrow_global_mut<EigenShardData>(@main);
@@ -140,25 +144,20 @@ module main::eigen_shard {
         token::set_uri(&shard_token_capability.mutator_ref, new_uri);
     }
 
-    #[view]
-    /// Returns the balance of the shard token of the owner
-    public fun shard_balance(owner_addr: address, shard: Object<EigenShardCapability>): u64 {
-        let metadata = object::convert<EigenShardCapability, Metadata>(shard);
-        let store = primary_fungible_store::ensure_primary_store_exists(owner_addr, metadata);
-        fungible_asset::balance(store)
+    public entry fun set_collection_uri(caller: &signer, new_uri: String) acquires ShardCollectionCapability{
+        let caller_address = signer::address_of(caller);
+        admin::assert_is_admin(caller_address);
+        let collection_capability = borrow_global<ShardCollectionCapability>(shard_collection_address());
+        collection::set_uri(&collection_capability.collection_mutator_ref, new_uri);
     }
 
-    #[view]
-    /// Returns the shard token address
-    public fun shard_token_address(): address {
-        shard_token_address_by_name(string::utf8(EIGEN_SHARD_TOKEN_NAME))
+    public entry fun set_collection_description(caller: &signer, new_description: String) acquires ShardCollectionCapability{
+        let caller_address = signer::address_of(caller);
+        admin::assert_is_admin(caller_address);
+        let collection_capability = borrow_global<ShardCollectionCapability>(shard_collection_address());
+        collection::set_description(&collection_capability.collection_mutator_ref, new_description);
     }
 
-    #[view]
-    /// Returns the shard token address by name
-    public fun shard_token_address_by_name(shard_token_name: String): address {
-        token::create_token_address(&@main, &string::utf8(EIGEN_SHARD_COLLECTION_NAME), &shard_token_name)
-    }
 
 
     /// Mints the given amount of the shard token to the given receiver.
@@ -202,13 +201,22 @@ module main::eigen_shard {
         let uri = string::utf8(EIGEN_SHARD_COLLECTION_URI);
 
         // Creates the collection with unlimited supply and without establishing any royalty configuration.
-        collection::create_unlimited_collection(
+        let collection_constructor_ref = collection::create_unlimited_collection(
             creator,
             description,
             name,
             option::none(),
             uri,
         );
+
+        let object_signer = object::generate_signer(&collection_constructor_ref);
+
+        let collection_mutator_ref = collection::generate_mutator_ref(&collection_constructor_ref);
+
+        let collection_capability = ShardCollectionCapability{
+            collection_mutator_ref
+        };
+        move_to(&object_signer, collection_capability);
     }
 
     /// Creates the shard token as fungible token.
@@ -283,6 +291,40 @@ module main::eigen_shard {
 
         borrow_global<EigenShardCapability>(token_address)
     }
+
+    // ANCHOR View Functions
+    #[view]
+    /// Returns the balance of the shard token of the owner
+    public fun shard_balance(owner_addr: address, shard: Object<EigenShardCapability>): u64 {
+        let metadata = object::convert<EigenShardCapability, Metadata>(shard);
+        let store = primary_fungible_store::ensure_primary_store_exists(owner_addr, metadata);
+        fungible_asset::balance(store)
+    }
+    
+    #[view]
+    /// Returns the shard token address
+    public fun shard_collection_address(): address {
+        collection::create_collection_address(&@main, &string::utf8(EIGEN_SHARD_COLLECTION_NAME))
+    }
+
+    // #[view]
+    // /// Returns the shard token address by name
+    // public fun shard_collection_address_by_name(shard_collection_name: String): address {
+    //     collection::create_collection_address(&@main, &string::utf8(EIGEN_SHARD_COLLECTION_NAME), &shard_token_name)
+    // }
+
+    #[view]
+    /// Returns the shard token address
+    public fun shard_token_address(): address {
+        shard_token_address_by_name(string::utf8(EIGEN_SHARD_TOKEN_NAME))
+    }
+
+    #[view]
+    /// Returns the shard token address by name
+    public fun shard_token_address_by_name(shard_token_name: String): address {
+        token::create_token_address(&@main, &string::utf8(EIGEN_SHARD_COLLECTION_NAME), &shard_token_name)
+    }
+
 
     #[test_only]
     public fun initialize_for_test(creator: &signer) {
