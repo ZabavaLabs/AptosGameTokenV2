@@ -73,9 +73,13 @@ module main::equipment{
     }
 
     // Tokens require a signer to create, so this is the signer for the collection
-    struct CollectionCapability has key, drop {
+    struct ResourceCapability has key, drop {
         capability: SignerCapability,
         burn_signer_capability: SignerCapability,
+    }
+
+    struct CollectionCapability has key {
+        collection_mutator_ref: collection::MutatorRef
     }
 
 
@@ -90,7 +94,7 @@ module main::equipment{
     const UC_EQUIPMENT_COLLECTION_URI: vector<u8> = b"https://aptos.dev/img/nyan.jpeg";
    
     fun init_module(account: &signer) {
-        let (token_resource, token_signer_cap) = account::create_resource_account(
+        let (signer_resource, token_signer_cap) = account::create_resource_account(
             account,
             APP_SIGNER_CAPABILITY_SEED,
         );
@@ -98,7 +102,7 @@ module main::equipment{
             account,
             BURN_SIGNER_CAPABILITY_SEED,
         );
-        move_to(account, CollectionCapability {
+        move_to(&signer_resource, ResourceCapability {
             capability: token_signer_cap,
             burn_signer_capability,
         });
@@ -107,45 +111,51 @@ module main::equipment{
         let name = string::utf8(UC_EQUIPMENT_COLLECTION_NAME);
         let uri = string::utf8(UC_EQUIPMENT_COLLECTION_URI);
 
-        create_equipment_collection(&token_resource, description, name, uri);
+        create_equipment_collection(&signer_resource, description, name, uri);
         
         let equipment_info_table = aptos_std::smart_table::new();
 
         let equipment_info = EquipmentInfo{
             table: equipment_info_table
         };
-        move_to(account, equipment_info);
+        move_to(&signer_resource, equipment_info);
 
         let gameData =  EquipmentData{
             max_equipment_level: 50
         };
 
-        move_to(account, gameData);
+        move_to(&signer_resource, gameData);
     }
 
     public entry fun set_max_weapon_level(caller: &signer, new_max_level: u64) acquires  EquipmentData {
         let caller_address = signer::address_of(caller);
         admin::assert_is_admin(caller_address);
-        let game_data = borrow_global_mut< EquipmentData>(@main);
+        let game_data = borrow_global_mut< EquipmentData>(collection_address());
         game_data.max_equipment_level = new_max_level;
     }
 
-    fun get_token_signer(): signer acquires CollectionCapability {
-        account::create_signer_with_capability(&borrow_global<CollectionCapability>(@main).capability)
+    fun get_token_signer(): signer acquires ResourceCapability {
+        account::create_signer_with_capability(&borrow_global<ResourceCapability>(collection_address()).capability)
     }
 
     fun create_equipment_collection(creator: &signer, description: String, name: String, uri: String) {
         let expected_royalty = royalty::create(5_000, 100_000, ROYALTY_ADDRESS);
-        collection::create_unlimited_collection(
+        let collection_constructor_ref = collection::create_unlimited_collection(
             creator,
             description,
             name,
             option::some(expected_royalty),
             uri,
         );
+        let collection_mutator_ref = collection::generate_mutator_ref(&collection_constructor_ref);
+
+        let collection_capability = CollectionCapability{
+            collection_mutator_ref
+        };
+        move_to(creator, collection_capability);
     }
 
-    public(friend) fun mint_equipment(user: &signer, equipment_id: u64) acquires CollectionCapability, EquipmentInfo {
+    public(friend) fun mint_equipment(user: &signer, equipment_id: u64) acquires ResourceCapability, EquipmentInfo {
         assert!(equipment_id_exists(equipment_id), ECHAR_ID_NOT_FOUND);
         let equipment_info_entry = get_equipment_info_entry(equipment_id);        
         let level = 1;
@@ -173,7 +183,7 @@ module main::equipment{
         atk_spd: u64, mv_spd: u64,
         growth_hp: u64, growth_atk: u64, growth_def: u64,
         growth_atk_spd: u64, growth_mv_spd: u64
-    ): Object<EquipmentCapability> acquires CollectionCapability {
+    ): Object<EquipmentCapability> acquires ResourceCapability {
 
         let constructor_ref = token::create_from_account(
             &get_token_signer(),
@@ -311,7 +321,7 @@ module main::equipment{
         let current_lvl = property_map::read_u64(&equipment_object, &string::utf8(b"LEVEL"));
 
         // Prevents upgrading beyond a certain level.
-        let game_data = borrow_global< EquipmentData>(@main);
+        let game_data = borrow_global< EquipmentData>(collection_address());
         assert!( current_lvl + amount <= game_data.max_equipment_level, EMAX_LEVEL);
 
         let current_hp = property_map::read_u64(&equipment_object, &string::utf8(b"HP"));
@@ -361,7 +371,7 @@ module main::equipment{
 
         admin::assert_is_admin(signer::address_of(account));
 
-        let equipment_info_table = &mut borrow_global_mut<EquipmentInfo>(@main).table;
+        let equipment_info_table = &mut borrow_global_mut<EquipmentInfo>(collection_address()).table;
         let table_length = aptos_std::smart_table::length(equipment_info_table);
 
         let equipment_info_entry = EquipmentInfoEntry{
@@ -387,21 +397,25 @@ module main::equipment{
     }
 
     public fun equipment_id_exists(equipment_id: u64): bool acquires EquipmentInfo {
-        let equipment_info_table = &borrow_global<EquipmentInfo>(@main).table;
+        let equipment_info_table = &borrow_global<EquipmentInfo>(collection_address()).table;
         smart_table::contains(equipment_info_table, equipment_id)
     }
 
     // ANCHOR Aptos View Functions
+    #[view]
+    public fun collection_address(): address {
+        account::create_resource_address(&@main,APP_SIGNER_CAPABILITY_SEED)
+    }
 
     #[view]
     public fun get_equipment_info_entry(equipment_id: u64): EquipmentInfoEntry acquires EquipmentInfo {
-        let equipment_info_table = &borrow_global<EquipmentInfo>(@main).table;
+        let equipment_info_table = &borrow_global<EquipmentInfo>(collection_address()).table;
         *smart_table::borrow(equipment_info_table, equipment_id)
     }
 
     #[view]
     public fun get_equipment_table_length(): u64 acquires EquipmentInfo {
-        let equipment_info_table = &borrow_global<EquipmentInfo>(@main).table;
+        let equipment_info_table = &borrow_global<EquipmentInfo>(collection_address()).table;
         aptos_std::smart_table::length(equipment_info_table)
     } 
 
@@ -427,7 +441,7 @@ module main::equipment{
         atk_spd: u64, mv_spd: u64,
         growth_hp: u64, growth_atk: u64, growth_def: u64,
         growth_atk_spd: u64, growth_mv_spd: u64
-    ): Object<EquipmentCapability> acquires CollectionCapability{
+    ): Object<EquipmentCapability> acquires ResourceCapability{
         create_equipment(
         user, 
         equipment_id, token_name,
@@ -441,7 +455,7 @@ module main::equipment{
     }
  
     #[test_only]
-    public fun mint_equipment_for_test(user: &signer, equipment_id: u64) acquires CollectionCapability, EquipmentInfo {
+    public fun mint_equipment_for_test(user: &signer, equipment_id: u64) acquires ResourceCapability, EquipmentInfo {
         mint_equipment(user,equipment_id);
     }
 
