@@ -34,17 +34,7 @@ module main::admin{
 
     struct AdminData has key {
         admin_address: address
-    }
-
-    const APP_SIGNER_CAPABILITY_SEED: vector<u8> = b"APP_SIGNER_CAPABILITY";
-    const BURN_SIGNER_CAPABILITY_SEED: vector<u8> = b"BURN_SIGNER_CAPABILITY";
-    const UC_CHARACTER_COLLECTION_NAME: vector<u8> = b"UC Character Collection Name";
-    const UC_CHARACTER_COLLECTION_DESCRIPTION: vector<u8> = b"UC Character Collection Description";
-    const UC_CHARACTER_COLLECTION_URI: vector<u8> = b"https://aptos.dev/img/nyan.jpeg";
-    const CHARACTER_1_NAME: vector<u8> = b"Lyra Frostwhisper";
-    const CHARACTER_2_NAME: vector<u8> = b"Orion Starcaster";
-
-    
+    }    
 
     fun init_module(account: &signer) {
         let settings = AdminData{

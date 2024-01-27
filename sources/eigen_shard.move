@@ -51,7 +51,7 @@ module main::eigen_shard {
     /// The shard collection description
     const EIGEN_SHARD_COLLECTION_DESCRIPTION: vector<u8> = b"This collection stores the Eigen Shard token." ;
     /// The shard collection URI
-    const EIGEN_SHARD_COLLECTION_URI: vector<u8> = b"https://shard.collection.uri";
+    const EIGEN_SHARD_COLLECTION_URI: vector<u8> = b"https://undyingcity.zabavalabs.com/shard/collection";
 
    /// The shard token name
     const EIGEN_SHARD_TOKEN_NAME: vector<u8> = b"Eigen Shard";
@@ -59,10 +59,10 @@ module main::eigen_shard {
     const EIGEN_SHARD_ASSET_NAME: vector<u8> = b"Eigen Shard";
     const EIGEN_SHARD_ASSET_SYMBOL: vector<u8> = b"ES";
     //Point to project website or app
-    const PROJECT_URI: vector<u8> = b"https://undying_city.zabavalabs.com";
+    const PROJECT_URI: vector<u8> = b"https://undyingcity.zabavalabs.com";
     //Point to Image
-    const PROJECT_ICON_URI: vector<u8> = b"https://zabavalabs.com";
-    const URI: vector<u8> = b"https://github.com/ZabavaLabs/AptosGameTokenV2";
+    const PROJECT_ICON_URI: vector<u8> = b"ipfs://bafybeiee6ziwznlaullflnzeqpvvdtweb7pehp572xcafkwawvtun2me4y";
+    const URI: vector<u8> = b"https://github.com/ZabavaLabs/Undying_City_Smart_Contracts";
 
 
     #[resource_group_member(group = aptos_framework::object::ObjectGroup)]

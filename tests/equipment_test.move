@@ -18,7 +18,7 @@ module main::equipment_test{
     use main::eigen_shard::{Self, EigenShardCapability};
 
     use main::admin::{Self, ENOT_ADMIN};
-    use main::equipment::{Self};
+    use main::equipment::{Self, EquipmentCollectionCapability, ResourceCapability, EquipmentInfo};
     // use std::debug::print;
     // use std::vector;
 
@@ -28,9 +28,22 @@ module main::equipment_test{
     const EINVALID_PROPERTY_VALUE: u64 = 5;
     const EINVALID_BALANCE: u64 = 6;
     const EMAX_LEVEL: u64 = 7;
+    const EINVALID_DATA: u64 = 11;
+
     const EINSUFFICIENT_BALANCE: u64 = 65540;
     
+    const APP_SIGNER_CAPABILITY_SEED: vector<u8> = b"APP_SIGNER_CAPABILITY";
+    const BURN_SIGNER_CAPABILITY_SEED: vector<u8> = b"BURN_SIGNER_CAPABILITY";
+    const UC_EQUIPMENT_COLLECTION_NAME: vector<u8> = b"Undying City Equipment Collection";
+    const UC_EQUIPMENT_COLLECTION_DESCRIPTION: vector<u8> = b"Contains all the Undying City equipment";
     
+    const ROYALTY_ADDRESS: address = @main;
+
+    // TODO: Change the equipment collection uri
+    const UC_EQUIPMENT_COLLECTION_URI: vector<u8> = b"ipfs://bafybeieg74qule3esf7s4svutbkoryoo35asgqauirkglf4xokhvyffymu";
+   
+
+
 
     // ANCHOR TESTING
 
@@ -193,7 +206,7 @@ module main::equipment_test{
 
     #[test(creator = @main, user1 = @0x456)]
     #[expected_failure(abort_code=ECHAR_ID_NOT_FOUND,location=main::equipment)]
-    public fun test_mint_unlisted_char(creator: &signer, user1: &signer)  {
+    public fun test_mint_unlisted_equipment(creator: &signer, user1: &signer)  {
         equipment::initialize_for_test(creator);
         equipment::mint_equipment_for_test(user1, 1);
     }
@@ -422,5 +435,44 @@ module main::equipment_test{
 
         equipment::set_max_weapon_level(creator, 60);
         equipment::upgrade_equipment(user1, char1, shard_token , 55);
+    }
+
+    #[test(creator = @main, user1 = @0x456, user2 = @0x789, aptos_framework = @aptos_framework)]
+    public fun test_set_equipment_collection (creator: &signer, user1: &signer, user2: &signer, aptos_framework: &signer) {
+        
+        admin::initialize_for_test(creator);
+        equipment::initialize_for_test(creator);
+
+        let creator_addr = signer::address_of(creator);
+        let user1_addr = signer::address_of(user1);
+        let user2_addr = signer::address_of(user2);
+
+
+        let equipment_part_id = 1;
+        let affinity_id = 1;
+        let grade = 1;
+        let level = 1;
+        equipment::add_equipment_entry(creator, 
+        string::utf8(b"Equipment Name"), 
+        string::utf8(b"Equipment Description"),
+        string::utf8(b"Equipment uri"),
+        equipment_part_id,
+        affinity_id,
+        grade,
+        100, 10, 11, 12, 50,
+        10, 5, 5, 5, 5);
+
+
+        let equipment_collection_capability = object::address_to_object<EquipmentCollectionCapability>(equipment::equipment_collection_address());
+       
+        assert!(collection::uri(equipment_collection_capability)==string::utf8(UC_EQUIPMENT_COLLECTION_URI), EINVALID_DATA);
+        let new_uri = string::utf8(b"https://new_google.com");
+        equipment::set_collection_uri(creator, new_uri);
+        assert!(collection::uri(equipment_collection_capability)==new_uri,EINVALID_DATA);
+
+        assert!(collection::description(equipment_collection_capability)==string::utf8(UC_EQUIPMENT_COLLECTION_DESCRIPTION),EINVALID_DATA);
+        let new_description = string::utf8(b"This is a new description!!!");
+        equipment::set_collection_description(creator, new_description);
+        assert!(collection::description(equipment_collection_capability)==new_description,EINVALID_DATA);
     }
 }
